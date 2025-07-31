@@ -1,83 +1,34 @@
 using Obvious.Soap;
 using UnityEngine;
 
+/// <summary>
+/// Base spawner for projectiles, handling trajectory drawing, rotation, and spawning.
+/// </summary>
 public class ProjectileSpawner : MonoBehaviour
 {
     [Header("Projectile Settings")]
-    /// <summary>
-    /// The projectile prefab to spawn.
-    /// </summary>
     [Tooltip("The projectile prefab to spawn.")]
-    [SerializeField] protected GameObject projectilePrefab;
+    [SerializeField] public GameObject projectilePrefab;
 
-    /// <summary>
-    /// The point where the projectile will spawn.
-    /// </summary>
     [Tooltip("The point where the projectile will spawn.")]
-    [SerializeField] protected Transform spawnPoint;
+    [SerializeField] public Transform spawnPoint;
 
-    /// <summary>
-    /// Adjustable launch force.
-    /// </summary>
-    [Tooltip("Adjustable launch force.")]
-    [SerializeField] protected FloatVariable launchForce;
+    [Header("Trajectory Visualization")]
+    [Tooltip("Component responsible for drawing the trajectory arc.")]
+    [SerializeField] private TrajectoryDrawer trajectoryDrawer;
 
-    /// <summary>
-    /// Adjustable angle in degrees for upward launch.
-    /// </summary>
-    [Tooltip("Adjustable angle in degrees for upward launch.")]
-    [SerializeField] protected FloatVariable upwardAngle;
+    [Tooltip("Time step used for trajectory calculation in DrawTrajectory.")]
+    [SerializeField] private float trajectoryTimeStep = 0.1f;
 
-    /// <summary>
-    /// Time step for trajectory calculation.
-    /// </summary>
-    [Tooltip("Time step for trajectory calculation.")]
-    [SerializeField] protected float trajectoryTimeStep = 5f;
+    [Tooltip("Transform used to visualize the maximum height of the projectile arc.")]
+    [SerializeField] public Transform curveMaxHeightTransform;
 
-    [Header("References")]
-    /// <summary>
-    /// Reference to the TrajectoryDrawer component.
-    /// </summary>
-    [Tooltip("Reference to the TrajectoryDrawer component.")]
-    [SerializeField] protected TrajectoryDrawer trajectoryDrawer;
+    [Header("Thrower Rotation")]
+    [Tooltip("Speed at which the thrower rotates towards the launch direction.")]
+    [SerializeField] private float rotationSpeed = 5f;
 
-    /// <summary>
-    /// Speed at which the thrower rotates.
-    /// </summary>
-    [Tooltip("Speed at which the thrower rotates.")]
-    [SerializeField] protected float rotationSpeed = 5f;  // Speed at which the thrower rotates to face the runner
-
-    [SerializeField] protected Transform curveMaxHeightTransform;
-
-    protected Vector3 launchDirection;
-    private Vector3 initialVelocity;
-
-    /// <summary>
-    /// Sets the launch force.
-    /// </summary>
-    /// <param name="launchForce">The desired launch force.</param>
-    public void SetLaunchForce(float launchForce)
-    {
-        this.launchForce.Value = launchForce;
-    }
-
-    private void Update()
-    {
-        // Update the launch parameters each frame to account for changes in force or angle
-        CalculateLaunchParameters();
-
-        // Draw the trajectory in real-time
-        DrawTrajectory();
-
-        RotateThrower();
-    }
-
-    public void SetInitialVelocity(Vector3 initialVelocity)
-    {
-        this.initialVelocity = initialVelocity;
-
-        spawnPoint.LookAt(initialVelocity);
-    }
+    // The currently calculated initial velocity vector
+    protected Vector3 initialVelocity;
 
     public void SetProjectile(GameObject projectilePrefab)
     {
@@ -85,59 +36,80 @@ public class ProjectileSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// Calculates the launch direction and initial velocity based on the current parameters.
+    /// Sets the initial velocity for this projectile spawn.
+    /// Also orients the spawnPoint to face that direction.
     /// </summary>
-    protected virtual void CalculateLaunchParameters()
+    public void SetInitialVelocity(Vector3 velocity)
     {
-        // Calculate launch direction with the upward angle
-        launchDirection = Quaternion.AngleAxis(-upwardAngle.Value, spawnPoint.right) * spawnPoint.forward;
-
-        // Calculate initial velocity based on the launch force and direction
-        SetInitialVelocity(launchDirection.normalized * launchForce.Value);
-    }
-
-    /// <summary>
-    /// Draws the trajectory in real-time using the TrajectoryDrawer component.
-    /// </summary>
-    protected virtual void DrawTrajectory()
-    {
-        if (trajectoryDrawer == null || spawnPoint == null) return;
-
-        // Call the DrawTrajectory method on the TrajectoryDrawer component
-        trajectoryDrawer.DrawTrajectory(spawnPoint.position, initialVelocity, trajectoryTimeStep, Physics.gravity);
-    }
-
-    // Function to rotate the thrower to face the runner
-    private void RotateThrower()
-    {
-        Vector3 directionToTarget = initialVelocity.normalized;
-        directionToTarget.y = 0f;  // Keep the direction strictly in the XZ plane
-
-        // Calculate the target rotation to look at the runner
-        Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
-
-        // Smoothly rotate the thrower towards the target rotation
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-    }
-
-    /// <summary>
-    /// Spawns the projectile and applies the calculated launch force to it.
-    /// </summary>
-    public void SpawnProjectile()
-    {
-        if (projectilePrefab == null || spawnPoint == null) return;
-
-        // Instantiate the projectile at the spawn point's position and rotation
-        GameObject spawnedProjectile = Instantiate(projectilePrefab, spawnPoint.position, spawnPoint.rotation);
-
-        Projectile projectile = spawnedProjectile.GetComponent<Projectile>();
-        projectile.SetHitPointPosition(trajectoryDrawer.HitPointPosition);
-
-        // Get the Rigidbody component of the spawned projectile
-        if (spawnedProjectile.TryGetComponent<Rigidbody>(out var rb))
+        initialVelocity = velocity;
+        if (spawnPoint != null && velocity.sqrMagnitude > 0f)
         {
-            // Apply force in the calculated direction
+            spawnPoint.forward = velocity.normalized;
+        }
+    }
+
+    /// <summary>
+    /// Instantiates the projectile and applies the initial velocity.
+    /// </summary>
+    public void Spawn()
+    {
+        if (projectilePrefab == null || spawnPoint == null)
+            return;
+
+        GameObject projGO = Instantiate(projectilePrefab, spawnPoint.position, spawnPoint.rotation);
+
+        // If there's a Projectile component, set its hit point (optional)
+        if (projGO.TryGetComponent<Projectile>(out var proj))
+        {
+            if (trajectoryDrawer != null)
+                proj.SetHitPointPosition(trajectoryDrawer.HitPointPosition);
+        }
+
+        // Apply impulse force
+        if (projGO.TryGetComponent<Rigidbody>(out var rb))
+        {
             rb.AddForce(initialVelocity, ForceMode.Impulse);
         }
+    }
+
+    private void Update()
+    {
+        DrawTrajectory();
+        RotateThrower();
+    }
+
+    /// <summary>
+    /// Draws the predicted trajectory using the configured drawer.
+    /// </summary>
+    private void DrawTrajectory()
+    {
+        if (trajectoryDrawer == null || spawnPoint == null)
+            return;
+
+        trajectoryDrawer.DrawTrajectory(
+            spawnPoint.position,
+            initialVelocity,
+            trajectoryTimeStep,
+            Physics.gravity);
+    }
+
+    /// <summary>
+    /// Smoothly rotates this GameObject to face the launch direction.
+    /// </summary>
+    private void RotateThrower()
+    {
+        if (initialVelocity.sqrMagnitude < 0.01f)
+            return;
+
+        Vector3 dir = initialVelocity.normalized;
+        dir.y = 0f; // Keep rotation in XZ plane
+        if (dir.sqrMagnitude < 0.001f)
+            return;
+
+        Quaternion targetRot = Quaternion.LookRotation(dir);
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            targetRot,
+            rotationSpeed * Time.deltaTime);
     }
 }
