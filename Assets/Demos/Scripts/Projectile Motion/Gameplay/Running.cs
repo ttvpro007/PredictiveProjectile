@@ -40,7 +40,7 @@ public class Running : MonoBehaviour
         mapCenter = GameObject.FindGameObjectWithTag("MapCenter")?.transform;
     }
 
-    private void Start()
+    private void OnEnable()
     {
         if (mapCenter == null)
         {
@@ -53,19 +53,40 @@ public class Running : MonoBehaviour
         StartCoroutine(InitializeMovement());
     }
 
+    private void OnDisable()
+    {
+        StopAllCoroutines();
+        run = false;
+        agent.enabled = false;
+        rb.isKinematic = false;
+        //agent.ResetPath();
+        CurrentDestination = Vector3.zero;
+        CurrentVelocity = Vector3.zero;
+        OnDestinationChanged = _ => { };
+    }
+
     private void Update()
     {
-        if (!run || !agent.enabled) return;
+        if (!run || !agent.enabled)
+        {
+            Debug.Log($"run={run}, agent.enabled={agent.enabled}");
+            return;
+        }
 
         agent.speed = speed.Value;
         CurrentVelocity = agent.velocity;
 
         if ((transform.position - CurrentDestination).sqrMagnitude <= destinationTolerance * destinationTolerance)
+        {
+            Debug.Log("Arrived – setting new destination");
             SetDestination();
+        }
     }
 
     private IEnumerator InitializeMovement()
     {
+        yield return new WaitForFixedUpdate(); // Wait for physics to stabilize
+
         // If not grounded, disable agent and kinematic to let gravity apply
         if (!IsGrounded())
         {
@@ -80,6 +101,8 @@ public class Running : MonoBehaviour
             rb.isKinematic = true;
             agent.enabled = true;
         }
+
+        Debug.Log("Grounded – starting running");
 
         // Start running
         SetDestination();

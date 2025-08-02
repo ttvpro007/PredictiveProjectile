@@ -61,7 +61,7 @@ public class ProjectileSpawner : MonoBehaviour
         this.launchForce.Value = launchForce;
     }
 
-    private void Update()
+    protected virtual void Update()
     {
         // Update the launch parameters each frame to account for changes in force or angle
         CalculateLaunchParameters();

@@ -13,8 +13,10 @@ GameObject:
   - component: {fileID: 3730589431407574805}
   - component: {fileID: 7344544869295416331}
   - component: {fileID: 3730589431407574806}
+  - component: {fileID: 6748362122563381845}
   - component: {fileID: 2612833415572610789}
   - component: {fileID: 5247232338734086027}
+  - component: {fileID: 4212242796037085476}
   m_Layer: 0
   m_Name: Runner
   m_TagString: Untagged
@@ -114,6 +116,18 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &6748362122563381845
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3730589431407574804}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6c1ee52de1cd6e4aa44b617abb449b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &2612833415572610789
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -161,6 +175,41 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &4212242796037085476
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3730589431407574804}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d93ba61543949824db31c7cb89b4f009, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _binding: 0
+  _disableAfterSubscribing: 0
+  _eventResponses:
+  - Delay:
+      UseLocal: 1
+      LocalValue: 0
+      Variable: {fileID: 0}
+    ScriptableEvent: {fileID: 11400000, guid: 11b254cd14e878340a35056f04e40660, type: 2}
+    Response:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 6748362122563381845}
+          m_TargetAssemblyTypeName: HealthPooledObject, Assembly-CSharp
+          m_MethodName: ReturnToPoolIfHealthAvailable
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
 --- !u!1 &6547493633932940338
 GameObject:
   m_ObjectHideFlags: 0

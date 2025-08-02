@@ -134,4 +134,20 @@ public class CameraController : MonoBehaviour
         }
         return maxDistance;
     }
+
+    public void AddPointToTrack(Transform point)
+    {
+        if (!pointsToTrack.Contains(point))
+        {
+            pointsToTrack.Add(point);
+        }
+    }
+
+    public void RemovePointToTrack(Transform point)
+    {
+        if (pointsToTrack.Contains(point))
+        {
+            pointsToTrack.Remove(point);
+        }
+    }
 }

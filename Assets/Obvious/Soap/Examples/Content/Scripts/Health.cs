@@ -7,7 +7,10 @@ namespace Obvious.Soap.Example
     public class Health : MonoBehaviour
     {
         [SerializeField] private FloatVariable _currentHealth = null;
+        public float CurrentHealth => _currentHealth != null ? _currentHealth.Value : 0;
+
         [SerializeField] private FloatReference _maxHealth = null;
+        public float MaxHealth => _maxHealth != null ? _maxHealth.Value : 0;
 
         [Header("Scriptable Events")] [SerializeField] private ScriptableEventInt _onPlayerDamaged = null;
         [SerializeField] private ScriptableEventInt _onPlayerHealed = null;

@@ -39,6 +39,13 @@ public class PredictiveProjectileSpawner : ProjectileSpawner
     ///// </summary>
     private void CalculateLaunchParametersByTimeToImpact()
     {
+        if (target == null || targetNavMeshAgent == null)
+        {
+            //Debug.LogWarning("Target or NavMeshAgent is not assigned. Cannot calculate launch parameters.");
+            SetInitialVelocity(Vector3.forward); // Default to a forward direction if no target is set
+            return;
+        }
+
         // Predict the future position of the target using its velocity and time to impact
         futureTargetPosition = PredictFuturePosition();
         futureTargetPosition.y += yOffset;

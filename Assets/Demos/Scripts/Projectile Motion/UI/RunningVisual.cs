@@ -19,7 +19,7 @@ public class RunningVisual : MonoBehaviour
         runner = GetComponent<Running>();
     }
 
-    private void Start()
+    private void OnEnable()
     {
         // Create direction indicator
         if (directionIndicatorPrefab != null)
@@ -43,6 +43,18 @@ public class RunningVisual : MonoBehaviour
         // Initialize target marker position immediately
         if (targetIndicator != null)
             SetTargetIndicator(runner.CurrentDestination);
+    }
+    
+    private void OnDisable()
+    {
+        // Unsubscribe from destination-changed
+        if (runner != null)
+            runner.OnDestinationChanged -= SetTargetIndicator;
+        // Destroy indicators
+        if (directionIndicator != null)
+            Destroy(directionIndicator.gameObject);
+        if (targetIndicator != null)
+            Destroy(targetIndicator.gameObject);
     }
 
     private void Update()

@@ -132,13 +132,13 @@ MonoBehaviour:
   launchForce: {fileID: 11400000, guid: 829155ed05395af42aa38e1a4d2473d5, type: 2}
   upwardAngle: {fileID: 11400000, guid: 6789751a09eced5448ef51c8457d0ba1, type: 2}
   trajectoryTimeStep: 15
-  trajectoryDrawer: {fileID: 0}
+  trajectoryDrawer: {fileID: 4327585374429273516}
   rotationSpeed: 5
   curveMaxHeightTransform: {fileID: 0}
   target: {fileID: 0}
   targetNavMeshAgent: {fileID: 0}
   timeToImpact: {fileID: 11400000, guid: a61648ffef24eea46a2fd12683a29f31, type: 2}
-  fixedLaunchSpeed: {fileID: 0}
+  fixedLaunchSpeed: {fileID: 11400000, guid: 829155ed05395af42aa38e1a4d2473d5, type: 2}
   useFixedLaunchSpeed: 0
   yOffset: 1
 --- !u!120 &883073356062316732
