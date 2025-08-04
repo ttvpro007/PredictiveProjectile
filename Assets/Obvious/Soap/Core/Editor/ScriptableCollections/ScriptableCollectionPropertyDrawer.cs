@@ -35,14 +35,6 @@ namespace Obvious.Soap.Editor
         
         public void DrawShortcut(Rect rect)
         {
-            var genericType = _scriptableCollection.GetGenericType;
-            var canBeSerialized = _scriptableCollection.CanBeSerialized();
-            if (!canBeSerialized)
-            {
-                SoapInspectorUtils.DrawSerializationError(genericType, rect);
-                return;
-            }
-            
             var count = _scriptableCollection.Count;
             EditorGUI.LabelField(rect, "Count: " + count);
         }

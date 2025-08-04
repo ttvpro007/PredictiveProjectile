@@ -45,7 +45,7 @@ namespace Obvious.Soap.Editor
 
         [MenuItem("CONTEXT/ScriptableObject/Delete All SubAssets", false, 0)]
         private static void DeleteAllSubAssets(MenuCommand command) => DeleteAllSubAssets(command.context);
-
+        
         [MenuItem("Assets/Soap/Delete All SubAssets")]
         private static void DeleteAllSubAssets() => DeleteAllSubAssets(Selection.activeObject);
 
@@ -58,7 +58,7 @@ namespace Obvious.Soap.Editor
         private static bool CanDeleteAllSubAssets(Object obj)
         {
             var isScriptable = obj is ScriptableObject;
-            if (!isScriptable)
+            if (!isScriptable || AssetDatabase.IsSubAsset(obj))
                 return false;
             var subAssets = SoapEditorUtils.GetAllSubAssets(Selection.activeObject);
             return subAssets.Count > 0;
@@ -73,18 +73,68 @@ namespace Obvious.Soap.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(unityObject), ImportAssetOptions.ForceUpdate);
         }
+        
+        [MenuItem("CONTEXT/ScriptableObject/Delete SubAsset", false, 0)]
+        private static void DeleteSubAsset(MenuCommand command) => DeleteSubAsset(command.context);
+        
+        [MenuItem("Assets/Soap/Delete SubAsset")]
+        private static void DeleteSubAsset() => DeleteSubAsset(Selection.activeObject);
+        
+        [MenuItem("CONTEXT/ScriptableObject/Delete SubAsset", true)]
+        private static bool ValidateDeleteSubAsset(MenuCommand command) => CanDeleteSubAsset(command.context);
 
-        [MenuItem("CONTEXT/ScriptableBase/\ud83d\udd0d Find References", false, 0)]
-        private static void FindReferences(MenuCommand command) => FindReferenceFor(command.context);
+        [MenuItem("Assets/Soap/Delete SubAsset", true)]
+        private static bool ValidateDeleteSubAsset() => CanDeleteSubAsset(Selection.activeObject);
+        
+        private static bool CanDeleteSubAsset(Object obj)
+        {
+            var isScriptable = obj is ScriptableObject;
+            if (!isScriptable)
+                return false;
+            return AssetDatabase.IsSubAsset(obj);
+        }
+        
+        private static void DeleteSubAsset(Object unityObject)
+        {
+            SoapEditorUtils.DeleteSubAsset(unityObject);
+        }
 
-        [MenuItem("Assets/Soap/\ud83d\udd0d Find References")]
-        private static void FindReferences() => FindReferenceFor(Selection.activeObject);
+        [MenuItem("CONTEXT/ScriptableBase/\ud83d\udd0dFind References/In Scene and Project", false, 0)]
+        private static void FindReferencesAll(MenuCommand command) => FindReferenceFor(command.context, FindReferenceType.All);
 
-        [MenuItem("CONTEXT/ScriptableBase/Find References", true)]
-        private static bool ValidateFindReference(MenuCommand command) => CanFindReferenceFor(command.context);
+        [MenuItem("CONTEXT/ScriptableBase/\ud83d\udd0dFind References/In Scene", false, 0)]
+        private static void FindReferencesInScene(MenuCommand command) => FindReferenceFor(command.context, FindReferenceType.Scene);
 
-        [MenuItem("Assets/Soap/\ud83d\udd0d Find References", true)]
-        private static bool ValidateFindReference() => CanFindReferenceFor(Selection.activeObject);
+        [MenuItem("CONTEXT/ScriptableBase/\ud83d\udd0dFind References/In Project", false, 0)]
+        private static void FindReferencesInProject(MenuCommand command) => FindReferenceFor(command.context, FindReferenceType.Project);
+        
+        [MenuItem("Assets/Soap/\ud83d\udd0d Find References/In Scene and Project")]
+        private static void FindReferencesAll() => FindReferenceFor(Selection.activeObject, FindReferenceType.All);
+
+        [MenuItem("Assets/Soap/\ud83d\udd0d Find References/In Scene")]
+        private static void FindReferencesInScene() => FindReferenceFor(Selection.activeObject, FindReferenceType.Scene);
+
+        [MenuItem("Assets/Soap/\ud83d\udd0d Find References/In Project")]
+        private static void FindReferencesInProject() => FindReferenceFor(Selection.activeObject, FindReferenceType.Project);
+
+
+        [MenuItem("CONTEXT/ScriptableBase/Find References/In Scene and Project", true)]
+        private static bool ValidateFindReferenceAll(MenuCommand command) => CanFindReferenceFor(command.context);
+
+        [MenuItem("Assets/Soap/\ud83d\udd0d Find References/In Scene and Project", true)]
+        private static bool ValidateFindReferenceAll() => CanFindReferenceFor(Selection.activeObject);
+        
+        [MenuItem("CONTEXT/ScriptableBase/Find References/In Scene", true)]
+        private static bool ValidateFindReferenceInScene(MenuCommand command) => CanFindReferenceFor(command.context);
+
+        [MenuItem("Assets/Soap/\ud83d\udd0d Find References/In Scene", true)]
+        private static bool ValidateFindReferenceInScene() => CanFindReferenceFor(Selection.activeObject);
+        
+        [MenuItem("CONTEXT/ScriptableBase/Find References/In Project", true)]
+        private static bool ValidateFindReferenceInProject(MenuCommand command) => CanFindReferenceFor(command.context);
+
+        [MenuItem("Assets/Soap/\ud83d\udd0d Find References/In Project", true)]
+        private static bool ValidateFindReferenceInProject() => CanFindReferenceFor(Selection.activeObject);
 
         private static bool CanFindReferenceFor(Object obj)
         {
@@ -92,7 +142,7 @@ namespace Obvious.Soap.Editor
             return isScriptable;
         }
 
-        private static void FindReferenceFor(Object unityObject)
+        private static void FindReferenceFor(Object unityObject, FindReferenceType findReferenceType)
         {
             var scriptableBase = unityObject as ScriptableBase;
             if (scriptableBase == null)
@@ -101,7 +151,7 @@ namespace Obvious.Soap.Editor
             if (mouseOverWindow == null)
                 return;
 
-            ReferencesPopupWindow.ShowWindow(mouseOverWindow.position, scriptableBase);
+            ReferencesPopupWindow.ShowWindow(mouseOverWindow.position, scriptableBase, findReferenceType);
         }
 
         [MenuItem("Assets/Soap/\ud83d\udd16 Set Tag")]
@@ -116,14 +166,14 @@ namespace Obvious.Soap.Editor
         {
             return Selection.GetFiltered<ScriptableBase>(SelectionMode.Assets).Length > 0;
         }
-        
+
         [MenuItem("Assets/Soap/\ud83d\uddbc Set Icon")]
         public static void SetIcon()
         {
             var monoScripts = Selection.GetFiltered<MonoScript>(SelectionMode.Assets);
             SoapInspectorUtils.Icons.SetIcons(monoScripts);
         }
-        
+
         [MenuItem("Assets/Soap/\ud83d\uddbc Set Icon", true)]
         private static bool ValidateSetIcon()
         {
@@ -131,6 +181,8 @@ namespace Obvious.Soap.Editor
             foreach (var monoScript in monoScripts)
             {
                 var scriptClass = monoScript.GetClass();
+                if (scriptClass == null)
+                    continue;
                 if (!scriptClass.IsSubclassOf(typeof(ScriptableBase)))
                 {
                     return false;
@@ -148,7 +200,7 @@ namespace Obvious.Soap.Editor
             var parent = AssetDatabase.LoadMainAssetAtPath(path);
             Selection.activeObject = parent;
         }
-        
+
         [MenuItem("CONTEXT/ScriptableObject/Select Parent", true)]
         private static bool IsSubAsset(MenuCommand command)
         {

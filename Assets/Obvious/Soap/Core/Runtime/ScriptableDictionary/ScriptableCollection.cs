@@ -14,13 +14,13 @@ namespace Obvious.Soap
             " Scene Loaded : when a scene is loaded.\n" +
             " Application Start : Once, when the application starts. Modifications persist between scenes")]
         [SerializeField] protected ResetType _resetOn = ResetType.SceneLoaded;
-        
-        [HideInInspector]
-        public Action Modified;
+
+        [HideInInspector] public Action Modified;
         public event Action OnCleared;
         public abstract int Count { get; }
         public abstract bool CanBeSerialized();
-        
+        private ResetType _lastResetType;
+
         protected virtual void Awake()
         {
             hideFlags = HideFlags.DontUnloadUnusedAsset;
@@ -28,34 +28,51 @@ namespace Obvious.Soap
 
         protected virtual void OnEnable()
         {
+#if UNITY_EDITOR
+            _lastResetType = _resetOn; 
+#endif
             if (_resetOn == ResetType.None)
                 return;
-            
+
             Clear();
-            if (_resetOn == ResetType.SceneLoaded)
-                SceneManager.sceneLoaded += OnSceneLoaded;
-            
-#if UNITY_EDITOR
-            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
-#endif
+            RegisterResetHooks(_resetOn);
         }
 
         protected virtual void OnDisable()
         {
-            if (_resetOn == ResetType.SceneLoaded)
-                SceneManager.sceneLoaded -= OnSceneLoaded;
-            
+            UnregisterResetHooks(_resetOn);
+        }
+
+        private void RegisterResetHooks(ResetType resetType)
+        {
+            if (resetType == ResetType.SceneLoaded)
+            {
+                SceneManager.sceneLoaded += OnSceneLoaded;
+            }
 #if UNITY_EDITOR
-            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            if (resetType == ResetType.ApplicationStarts || resetType == ResetType.SceneLoaded)
+            {
+                EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            }
+#endif
+        }
+
+        private void UnregisterResetHooks(ResetType resetType)
+        {
+            if (resetType == ResetType.SceneLoaded)
+            {
+                SceneManager.sceneLoaded -= OnSceneLoaded;
+            }
+#if UNITY_EDITOR
+            if (resetType == ResetType.ApplicationStarts || resetType == ResetType.SceneLoaded)
+            {
+                EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            }
 #endif
         }
 
         protected virtual void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            //the reset mode can change after the game has started, so we need to check it here.
-            if (_resetOn != ResetType.SceneLoaded)
-                return;
-            
             if (mode == LoadSceneMode.Single)
             {
                 Clear();
@@ -67,7 +84,7 @@ namespace Obvious.Soap
             OnCleared?.Invoke();
             Modified?.Invoke();
         }
-        
+
         internal override void Reset()
         {
             base.Reset();
@@ -83,6 +100,16 @@ namespace Obvious.Soap
             if (playModeStateChange == PlayModeStateChange.EnteredEditMode ||
                 playModeStateChange == PlayModeStateChange.ExitingEditMode)
                 Clear();
+        }
+
+        private void OnValidate()
+        {
+            if (_lastResetType != _resetOn)
+            {
+                UnregisterResetHooks(_lastResetType);
+                RegisterResetHooks(_resetOn);
+                _lastResetType = _resetOn;
+            }
         }
 #endif
     }

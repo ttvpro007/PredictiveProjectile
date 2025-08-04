@@ -25,7 +25,7 @@ namespace Obvious.Soap
         [Tooltip("If clamped, sets the minimum and maximum")] 
         [SerializeField]
 #if ODIN_INSPECTOR
-        [ShowIf("_isClamped", true)]
+        [ShowIf("_isClamped")]
         [PropertyOrder(6)][Indent]
 #else
         [ShowIf("_isClamped")]
@@ -41,7 +41,7 @@ namespace Obvious.Soap
         [Tooltip("If clamped, sets the minimum and maximum")] 
         [SerializeField]
 #if ODIN_INSPECTOR
-        [ShowIf("_isClamped", true)]
+        [ShowIf("_isClamped")]
         [PropertyOrder(7)][Indent]
 #else
         [ShowIf("_isClamped")]
@@ -57,7 +57,7 @@ namespace Obvious.Soap
         /// <summary>
         /// Returns the percentage of the value between the minimum and maximum.
         /// </summary>
-        public float Ratio => Mathf.InverseLerp( _min.Value, _max.Value, _value);
+        public float Ratio => Mathf.InverseLerp( _min.Value, _max.Value, Value);
 
         public override void Save()
         {

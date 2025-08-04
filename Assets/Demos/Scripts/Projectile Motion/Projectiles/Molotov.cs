@@ -1,5 +1,4 @@
 using Obvious.Soap.Example;
-using System.Collections;
 using UnityEngine;
 
 public class Molotov : Projectile, IExplosive
@@ -16,8 +15,8 @@ public class Molotov : Projectile, IExplosive
     [Tooltip("Prefab for the burn visual effect.")]
     [SerializeField] private GameObject trailEffect;
 
-    [Tooltip("Prefab for the burn visual effect.")]
-    [SerializeField] private GameObject burnEffect;
+    [Tooltip("Prefab for the burn effect that appears after explosion.")]
+    [SerializeField] private GameObject burnEffectPrefab;
 
     [Tooltip("Damage dealt over time by burning.")]
     [SerializeField] private float burnDamage = 3f;
@@ -28,11 +27,11 @@ public class Molotov : Projectile, IExplosive
     [Tooltip("Interval for applying burn damage.")]
     [SerializeField] private float burnInterval = 1f;
 
-    private float burningTimeElapsed = 0f;
-    private float nextBurnDamageTime = 0f;
     private bool hasExploded = false;
     private GameObject instantiatedTrailEffect;
-    private GameObject instantiatedBurnEffect;
+
+    private int maxEffectsCount = 1;
+    private int currentEffectsCount = 0;
 
     // Properties from IExplosive
     public GameObject ExplosionEffect => explosionEffect;
@@ -53,63 +52,41 @@ public class Molotov : Projectile, IExplosive
     public void Explode()
     {
         // Instantiate explosion visual effect
-        if (explosionEffect != null)
+        if (currentEffectsCount < maxEffectsCount)
         {
-            Instantiate(explosionEffect, transform.position, Quaternion.identity);
+            if (explosionEffect != null)
+            {
+                Instantiate(explosionEffect, transform.position, Quaternion.identity);
+            }
+
+            if (burnEffectPrefab != null)
+            {
+                if (Instantiate(burnEffectPrefab, transform.position, Quaternion.identity).TryGetComponent<BurnEffectAOE>(out var burnEffect))
+                {
+                    burnEffect.Configure(burnDuration, burnInterval, explosionRadius, burnDamage);
+                    burnEffect.OnBurnEffectComplete += Destroy;
+                }
+            }
+
+            currentEffectsCount++;
         }
 
+        int maxColliders = 10;
+        Collider[] colliders = new Collider[maxColliders];
         // Apply explosion damage to nearby objects and initiate burn effect
-        Collider[] colliders = Physics.OverlapSphere(transform.position, explosionRadius);
-        foreach (Collider nearbyObject in colliders)
+        int numberOfCollisions = Physics.OverlapSphereNonAlloc(transform.position, explosionRadius, colliders);
+        for (int i = 0; i < maxColliders; i++)
         {
-            if (nearbyObject.TryGetComponent<Health>(out var health))
+            if (colliders[i] == null) continue; // Skip if collider is null or exceeds the number of collisions
+
+            if (colliders[i].TryGetComponent<Health>(out var health))
             {
-                health.TakeDamage((int)explosionDamage);
-                StartCoroutine(ApplyBurnWhileInRadius(nearbyObject.gameObject));
+                DealDamage(health, explosionDamage);
             }
         }
 
         // Disable the molotov model
         SetModelActive(false);
-    }
-
-    private IEnumerator ApplyBurnWhileInRadius(GameObject target)
-    {
-        // Instantiate the burn visual effect
-        if (burnEffect != null)
-        {
-            instantiatedBurnEffect = Instantiate(burnEffect, hitPointPosition, Quaternion.identity);
-        }
-
-        while (burningTimeElapsed < burnDuration)
-        {
-            if (nextBurnDamageTime >= burnInterval)
-            {
-                // Apply burn damage if target is within explosion radius
-                if (Vector3.Distance(hitPointPosition, target.transform.position) <= explosionRadius)
-                {
-                    if (target.TryGetComponent<Health>(out var health))
-                    {
-                        health.TakeDamage((int)burnDamage);
-                    }
-                }
-                nextBurnDamageTime = 0f;
-            }
-
-            burningTimeElapsed += Time.deltaTime;
-            nextBurnDamageTime += Time.deltaTime;
-            yield return null;
-        }
-
-        // Destroy burn effect after burn duration ends
-        if (instantiatedBurnEffect != null)
-        {
-            print("Destroy");
-            Destroy(instantiatedBurnEffect);
-        }
-
-        // Destroy game object
-        Destroy();
     }
 
     protected override void OnCollisionEnter(Collision collision)

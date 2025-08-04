@@ -1,64 +1,57 @@
 ﻿using JetBrains.Annotations;
+using System;
 using UnityEngine;
 
 namespace Obvious.Soap.Example
 {
-    [HelpURL("https://obvious-game.gitbook.io/soap/scene-documentation/1_scriptablevariables")]
     public class Health : MonoBehaviour
     {
-        [SerializeField] private FloatVariable _currentHealth = null;
-        public float CurrentHealth => _currentHealth != null ? _currentHealth.Value : 0;
+        [SerializeField] private float _currentHealth;
+        public float CurrentHealth => _currentHealth;
 
-        [SerializeField] private FloatReference _maxHealth = null;
-        public float MaxHealth => _maxHealth != null ? _maxHealth.Value : 0;
+        [SerializeField] private float _maxHealth;
+        public float MaxHealth => _maxHealth;
 
-        [Header("Scriptable Events")] [SerializeField] private ScriptableEventInt _onPlayerDamaged = null;
-        [SerializeField] private ScriptableEventInt _onPlayerHealed = null;
-        [SerializeField] private ScriptableEventNoParam _onPlayerDeath = null;
+        public event Action<int> OnDamaged;
+        public event Action<int> OnCriticalDamaged;
+        public event Action<int> OnHealed;
+        public event Action OnDeath;
 
         private bool _isDead = false;
+        private bool _isCritical = false; // Example of critical state, can be used for special damage handling
 
-        private void Start()
+        private void OnEnable()
         {
-            _currentHealth.Value = _maxHealth.Value;
-            _currentHealth.OnValueChanged += OnHealthChanged;
+            _currentHealth = _maxHealth;
         }
 
-        private void OnDestroy()
-        {
-            _currentHealth.OnValueChanged -= OnHealthChanged;
-        }
-
-        private void OnHealthChanged(float newValue)
-        {
-            var diff = newValue - _currentHealth.PreviousValue;
-            if (diff < 0)
-            {
-                OnDamaged(Mathf.Abs(diff));
-            }
-            else
-            {
-                OnHealed(diff);
-            }
-        }
-
-        private void OnDamaged(float value)
+        private void OnDamagedHandler(float value)
         {
             if (_currentHealth <= 0f && !_isDead)
-                OnDeath();
+                OnDeathHandler();
             else
-                _onPlayerDamaged.Raise(Mathf.RoundToInt(value));
+            {
+                if (_isCritical)
+                {
+                    OnCriticalDamaged?.Invoke(Mathf.RoundToInt(value));
+                    _isCritical = false; // Reset critical state after handling
+                }
+                else
+                {
+                    OnDamaged?.Invoke(Mathf.RoundToInt(value));
+                }
+            }
         }
 
-        private void OnHealed(float value)
+        private void OnHealedHandler(float value)
         {
-            _onPlayerHealed.Raise(Mathf.RoundToInt(value));
+            OnHealed?.Invoke(Mathf.RoundToInt(value));
         }
 
-        private void OnDeath()
+        private void OnDeathHandler()
         {
-            _onPlayerDeath.Raise();
             _isDead = true;
+            OnDeath?.Invoke();
         }
 
         //if you don't want to modify directly the health, you can also do it like this
@@ -66,7 +59,28 @@ namespace Obvious.Soap.Example
         [UsedImplicitly]
         public void TakeDamage(int amount)
         {
-            _currentHealth.Add(-amount);
+            _isCritical = false; // Reset critical state on normal damage
+            _currentHealth -= amount;
+            OnDamagedHandler(amount);
+        }
+
+        public void TakeCriticalDamage(int amount)
+        {
+            _isCritical = true; // Set critical state for special handling
+            _currentHealth -= amount; // Example of critical damage
+            OnDamagedHandler(amount);
+        }
+
+        public void Heal(int amount)
+        {
+            _currentHealth += amount;
+            OnHealedHandler(amount);
+        }
+
+        public void ResetHealth()
+        {
+            _currentHealth = _maxHealth;
+            _isDead = false; // Reset dead state
         }
     }
 }

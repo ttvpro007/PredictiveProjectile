@@ -1,3 +1,21 @@
+## [3.5.3] - 2025-07-29
+- Fixed ScriptableVariable using improper equality checks
+- Fixed DeleteSubAsset calling the wrong method
+
+## [3.5.2] - 2025-07-27
+- Added Find References in Scene, Project, and Both
+- Added Link URL support for documentation
+- Added compatibility with the UEE Package
+- OnValueChanged is now also triggered when the Local Value of a Variable Reference changes in the Inspector
+- Added DeleteSubAsset method for SubAssets
+- Made SoapUtils methods public
+- Replaced Odin [ShowIf] attribute with [HideIf] on bindings
+- Fixed incorrect value usage in the Ratio property of Int and Float Variables
+- Fixed ScriptableCollection resetting even when "None" reset mode was selected
+- Fixed ScriptableList displaying an incorrect count
+- Fixed serialization error icon appearing in ScriptableCollections property drawers 
+- Removed deprecated scripts
+
 ## [3.5.1] - 2025-03-11
 - Added a SelectParent method for SubAssets
 - Added keeping the Namespace in the SoapTypeCreator persistent

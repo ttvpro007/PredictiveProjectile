@@ -12,6 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed2a53a13d3e4066b3ccfe94e017a207, type: 3}
   m_Name: _onPlayerDamaged
   m_EditorClassIdentifier: 
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: RepaintRequest
+      Entry: 6
+      Data: 
   TagIndex: 0
   Description: 
   _debugLogEnabled: 0

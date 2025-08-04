@@ -15,9 +15,10 @@ namespace Obvious.Soap
     public class BindFillingImage : CacheComponent<Image>
     {
         [SerializeField] private FloatVariable _floatVariable = null;
+        [Tooltip("If true, the max value is taken from the bound variable's max value")]
         [SerializeField] bool _useMaxValueFromVariable = false;
 #if ODIN_INSPECTOR
-        [ShowIf("_useMaxValueFromVariable", false)]
+        [HideIf("_useMaxValueFromVariable")]
 #endif
         [SerializeField] private FloatReference _maxValue = new FloatReference(100,true);
 

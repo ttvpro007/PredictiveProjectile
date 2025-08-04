@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace Obvious.Soap
 {
@@ -6,13 +8,15 @@ namespace Obvious.Soap
     public abstract class VariableReferenceBase { }
     
     [Serializable]
-    public abstract class VariableReference<V, T> : VariableReferenceBase where V : ScriptableVariable<T>
+    public abstract class VariableReference<V, T> :  VariableReferenceBase, ISerializationCallbackReceiver where V : ScriptableVariable<T>
     {
         public bool UseLocal;
         public T LocalValue;
         public V Variable;
 
         private Action<T> _onValueChanged;
+
+        [NonSerialized] private T _lastSerializedLocalValue;
 
         public T Value
         {
@@ -63,6 +67,19 @@ namespace Obvious.Soap
         public static implicit operator T(VariableReference<V, T> reference)
         {
             return reference.Value;
+        }
+
+        public void OnBeforeSerialize()
+        {
+            _lastSerializedLocalValue = LocalValue;
+        }
+
+        public void OnAfterDeserialize()
+        {
+            if (UseLocal && !EqualityComparer<T>.Default.Equals(_lastSerializedLocalValue, LocalValue))
+            {
+                _onValueChanged?.Invoke(LocalValue);
+            }
         }
     }
 }

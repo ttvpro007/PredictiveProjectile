@@ -19,7 +19,7 @@ namespace Obvious.Soap.Editor
         private SoapWindowSettings _soapWindowSettings;
 
         private string HeaderTitle => $" SOAP - Version {Version}";
-        private const string Version = "3.5.1";
+        private const string Version = "3.5.3";
         private const string DocURL = "https://obvious-game.gitbook.io/soap";
         private const string SceneDocURL = "https://obvious-game.gitbook.io/soap/scene-documentation/";
         private const string DiscordURL = "https://discord.gg/CVhCNDbxF5";

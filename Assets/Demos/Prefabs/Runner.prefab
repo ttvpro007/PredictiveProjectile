@@ -16,10 +16,10 @@ GameObject:
   - component: {fileID: 6748362122563381845}
   - component: {fileID: 2612833415572610789}
   - component: {fileID: 5247232338734086027}
-  - component: {fileID: 4212242796037085476}
+  - component: {fileID: 7333521942913171374}
   m_Layer: 0
   m_Name: Runner
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -38,7 +38,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1990825405385095679}
-  - {fileID: 5219530001504725783}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &153296272339507611
@@ -140,14 +139,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 96975d436de63944ba2d377cc7845e5a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _currentHealth: {fileID: 11400000, guid: 45b561823a2d46e4e809ad2c2fb6ec7a, type: 2}
-  _maxHealth:
-    UseLocal: 0
-    LocalValue: 0
-    Variable: {fileID: 11400000, guid: 60d7c00e0dfbb924aa8042c5eabb2c28, type: 2}
-  _onPlayerDamaged: {fileID: 11400000, guid: 73579c8078ff7044ca2e24f48c10596a, type: 2}
-  _onPlayerHealed: {fileID: 11400000, guid: 910b262b11f7d8f49924cf614842f579, type: 2}
-  _onPlayerDeath: {fileID: 11400000, guid: 11b254cd14e878340a35056f04e40660, type: 2}
+  _currentHealth: 0
+  _maxHealth: 100
 --- !u!54 &5247232338734086027
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -175,7 +168,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &4212242796037085476
+--- !u!114 &7333521942913171374
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -184,32 +177,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 3730589431407574804}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d93ba61543949824db31c7cb89b4f009, type: 3}
+  m_Script: {fileID: 11500000, guid: 56a50eb6a8d95394eaec863f7b434d03, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _binding: 0
-  _disableAfterSubscribing: 0
-  _eventResponses:
-  - Delay:
-      UseLocal: 1
-      LocalValue: 0
-      Variable: {fileID: 0}
-    ScriptableEvent: {fileID: 11400000, guid: 11b254cd14e878340a35056f04e40660, type: 2}
-    Response:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 6748362122563381845}
-          m_TargetAssemblyTypeName: HealthPooledObject, Assembly-CSharp
-          m_MethodName: ReturnToPoolIfHealthAvailable
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
+  numberPrefab: {fileID: 2244233377300547510, guid: 2807f28417f82da4f8c4ba1d63d11823, type: 3}
+  critNumberPrefab: {fileID: 2244233377300547510, guid: ac49d3aee410aca4b92efacac306a9fc, type: 3}
 --- !u!1 &6547493633932940338
 GameObject:
   m_ObjectHideFlags: 0
@@ -320,85 +292,3 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!1 &7993101576331289339
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5219530001504725783}
-  - component: {fileID: 6185961995912446803}
-  - component: {fileID: 1388913848015478501}
-  m_Layer: 6
-  m_Name: HP Damage Numbers Spawner
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5219530001504725783
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7993101576331289339}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 384868475192024159}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6185961995912446803
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7993101576331289339}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 56a50eb6a8d95394eaec863f7b434d03, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  numberPrefab: {fileID: 2244233377300547510, guid: 2807f28417f82da4f8c4ba1d63d11823, type: 3}
-  critNumberPrefab: {fileID: 0}
---- !u!114 &1388913848015478501
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7993101576331289339}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f30bb439e6d7dc94489cd1be18593b0e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _binding: 0
-  _disableAfterSubscribing: 0
-  _eventResponses:
-  - Delay:
-      UseLocal: 1
-      LocalValue: 0
-      Variable: {fileID: 0}
-    _scriptableEvent: {fileID: 11400000, guid: 73579c8078ff7044ca2e24f48c10596a, type: 2}
-    _response:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 6185961995912446803}
-          m_TargetAssemblyTypeName: DamageNumberSpawner, Assembly-CSharp
-          m_MethodName: SpawnNumber
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2

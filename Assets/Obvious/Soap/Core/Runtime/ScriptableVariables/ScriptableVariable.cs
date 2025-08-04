@@ -138,7 +138,7 @@ namespace Obvious.Soap
 #endif
         }
 
-        protected virtual void ValueChanged()
+        public virtual void ValueChanged()
         {
 #if UNITY_EDITOR
             _onValueChanged?.Invoke(GetEditorValue);

@@ -91,8 +91,8 @@ namespace Obvious.Soap
                 x.Value == $"System.{systemType}").Key ?? systemType;
         }
 
-        internal static bool IsUnityType(Type type) => unityTypes.Contains(type);
-        internal static bool IsUnityType(string type) => unityTypesAsString.Contains(type);
+        public static bool IsUnityType(Type type) => unityTypes.Contains(type);
+        public static bool IsUnityType(string type) => unityTypesAsString.Contains(type);
 
         internal static bool CanBeCreated(string typeName)
         {
@@ -101,7 +101,7 @@ namespace Obvious.Soap
             return true;
         }
         
-        internal static bool IsSerializable(Type type)
+        public static bool IsSerializable(Type type)
         {
             if (type == null)
                 return false;

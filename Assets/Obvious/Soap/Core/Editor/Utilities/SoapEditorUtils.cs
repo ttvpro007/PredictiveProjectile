@@ -561,7 +561,7 @@ namespace Obvious.Soap.Editor
                 FindReferencesInGameObject(child.gameObject, scriptableBase, ref sceneReferences);
         }
 
-        internal static Dictionary<string, int> FindReferencesInAssets(ScriptableBase scriptableBase)
+        internal static Dictionary<string, int> FindReferencesInProject(ScriptableBase scriptableBase)
         {
             var assetPaths = AssetDatabase.FindAssets("t:Prefab t:ScriptableObject")
                 .Select(AssetDatabase.GUIDToAssetPath)

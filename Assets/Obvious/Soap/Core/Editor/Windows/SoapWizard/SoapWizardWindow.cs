@@ -567,8 +567,12 @@ namespace Obvious.Soap.Editor
                     });
                 }
 
-                menu.AddItem(new GUIContent("\ud83d\udd0d Find References"), false,
-                    () => { ReferencesPopupWindow.ShowWindow(position, scriptableBase); });
+                menu.AddItem(new GUIContent("\ud83d\udd0d Find References/In Scene and Project"), false,
+                    () => { ReferencesPopupWindow.ShowWindow(position, scriptableBase, FindReferenceType.All); });
+                menu.AddItem(new GUIContent("\ud83d\udd0d Find References/In Scene"), false,
+                    () => { ReferencesPopupWindow.ShowWindow(position, scriptableBase, FindReferenceType.Scene); });
+                menu.AddItem(new GUIContent("\ud83d\udd0d Find References/In Project"), false,
+                    () => { ReferencesPopupWindow.ShowWindow(position, scriptableBase, FindReferenceType.Project); });
 
                 menu.AddItem(new GUIContent("\ud83d\udd16 Set Tag"), false,
                     () =>

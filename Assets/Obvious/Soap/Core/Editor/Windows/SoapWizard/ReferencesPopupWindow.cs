@@ -17,30 +17,47 @@ namespace Obvious.Soap.Editor
         private bool _sceneFoldout = true;
         private bool _assetFoldout = true;
         private GUIStyle _windowStyle;
+        private FindReferenceType _findReferenceType = FindReferenceType.All;
+        private GUIStyle _foldoutStyle;
 
-        public static void ShowWindow(Rect rect, ScriptableBase scriptableBase)
+
+        public static void ShowWindow(Rect rect, ScriptableBase scriptableBase,
+            FindReferenceType findReferenceType = FindReferenceType.All)
         {
             var window = CreateInstance<ReferencesPopupWindow>();
-            window.Init(scriptableBase);
+            window.Init(scriptableBase, findReferenceType);
             window.titleContent = new GUIContent("Find References");
             window.position = new Rect(rect.x, rect.y, 350, 350);
             window.ShowPopup();
             window.position = SoapInspectorUtils.CenterInWindow(window.position, rect);
         }
 
-        private void Init(ScriptableBase scriptableBase)
+        private void Init(ScriptableBase scriptableBase, FindReferenceType findReferenceType)
         {
             _scriptableBase = scriptableBase;
+            _findReferenceType = findReferenceType;
+            _foldoutStyle = new GUIStyle(EditorStyles.foldout)
+            {
+                fontStyle = FontStyle.Bold
+            };
             LoadIcons();
-            _sceneReferences = SoapEditorUtils.FindReferencesInScene(_scriptableBase);
-            _assetReferences = SoapEditorUtils.FindReferencesInAssets(_scriptableBase);
+            if (_findReferenceType.HasFlag(FindReferenceType.Scene))
+            {
+                _sceneReferences = SoapEditorUtils.FindReferencesInScene(_scriptableBase);
+                EditorApplication.hierarchyChanged += OnHierarchyChanged;
+            }
+
+            if (_findReferenceType.HasFlag(FindReferenceType.Project))
+            {
+                _assetReferences = SoapEditorUtils.FindReferencesInProject(_scriptableBase);
+                EditorApplication.projectChanged += OnProjectChanged;
+            }
+
             _windowStyle = new GUIStyle();
             var darkness = 0.235f;
             _windowStyle.normal.background =
                 SoapInspectorUtils.CreateTexture(new Color(darkness, darkness, darkness, 1f));
             SoapWizardWindow.IsPopupOpen = true;
-            EditorApplication.hierarchyChanged += OnHierarchyChanged;
-            EditorApplication.projectChanged += OnProjectChanged;
         }
 
         private void OnDisable()
@@ -85,139 +102,143 @@ namespace Obvious.Soap.Editor
         {
             EditorGUILayout.BeginVertical();
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
-
-            var foldoutStyle = new GUIStyle(EditorStyles.foldout);
-            foldoutStyle.fontStyle = FontStyle.Bold;
-
-            // Draw Scene Foldout
-            {
-                var suffix = _sceneReferences == null ? "" : $"({_sceneReferences.Count})";
-                var foldoutText = $"Scene {suffix}";
-                var newFoldoutState = EditorGUILayout.Foldout(_sceneFoldout, new GUIContent(foldoutText, _icons[0]),
-                    true,
-                    foldoutStyle);
-
-                if (newFoldoutState != _sceneFoldout)
-                {
-                    _sceneFoldout = newFoldoutState;
-                    if (_sceneFoldout)
-                    {
-                        _sceneReferences = SoapEditorUtils.FindReferencesInScene(_scriptableBase);
-                    }
-                }
-
-                if (_sceneFoldout)
-                {
-                    if (_sceneReferences != null)
-                    {
-                        foreach (var sceneReference in _sceneReferences)
-                        {
-                            if (sceneReference.Item1 == null) //object could have been deleted (for manual refresh mode)
-                                continue;
-                            Texture icon = GetComponentIcon(sceneReference.Item2);
-                            var data = new ReferenceEntryData
-                            {
-                                Obj = sceneReference.Item1,
-                                Icon = icon,
-                                Content = $"{sceneReference.Item1.name} ({sceneReference.Item2.Name})",
-                                Argument = sceneReference.Item3
-                            };
-                            DrawReferenceEntry(data, 0.7f);
-                        }
-                    }
-                }
-            }
+            
+            if (_findReferenceType.HasFlag(FindReferenceType.Scene))
+                DrawSceneReferences();
 
             GUILayout.Space(EditorGUIUtility.singleLineHeight);
-
-            // Draw Asset Foldout
-            {
-                var suffix = _assetReferences == null ? "" : $"({_assetReferences.Count})";
-                var foldoutText = $"Assets {suffix}";
-                var newFoldoutState = EditorGUILayout.Foldout(_assetFoldout, new GUIContent(foldoutText, _icons[1]),
-                    true,
-                    foldoutStyle);
-
-                if (newFoldoutState != _assetFoldout)
-                {
-                    _assetFoldout = newFoldoutState;
-                    if (_assetFoldout)
-                    {
-                        _assetReferences = SoapEditorUtils.FindReferencesInAssets(_scriptableBase);
-                    }
-                }
-
-                if (_assetFoldout)
-                {
-                    if (_assetReferences != null)
-                    {
-                        foreach (var assetReference in _assetReferences)
-                        {
-                            var assetPath = assetReference.Key;
-                            var mainAsset = AssetDatabase.LoadMainAssetAtPath(assetPath);
-                            if (mainAsset == null) //object could have been deleted (for manual refresh mode)
-                                continue;
-                            var objectContent = EditorGUIUtility.ObjectContent(mainAsset, mainAsset.GetType());
-                            Texture2D icon = objectContent.image as Texture2D;
-                            var path = assetPath.Remove(0, 7);
-                            var data = new ReferenceEntryData
-                            {
-                                Obj = mainAsset,
-                                Icon = icon,
-                                Content = mainAsset.name,
-                                Argument = assetReference.Value.ToString()
-                            };
-                            DrawReferenceEntry(data, 0.7f);
-                        }
-                    }
-                }
-            }
+            
+            if (_findReferenceType.HasFlag(FindReferenceType.Project))
+                DrawProjectReferences();
 
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
+        }
 
-            void DrawReferenceEntry(ReferenceEntryData data, float ratio)
+        private void DrawSceneReferences()
+        {
+            var suffix = _sceneReferences == null ? "" : $"({_sceneReferences.Count})";
+            var foldoutText = $"Scene {suffix}";
+            var newFoldoutState = EditorGUILayout.Foldout(_sceneFoldout, new GUIContent(foldoutText, _icons[0]),
+                true,
+                _foldoutStyle);
+
+            if (newFoldoutState != _sceneFoldout)
             {
-                var width = position.width - 45; //weird offset but hey !
-                EditorGUILayout.BeginHorizontal();
-                var style = new GUIStyle(EditorStyles.objectField)
+                _sceneFoldout = newFoldoutState;
+                if (_sceneFoldout)
                 {
-                    margin = new RectOffset(4, 0, 2, 2),
-                    padding = new RectOffset(2, 2, 2, 2),
-                    alignment = TextAnchor.MiddleLeft,
-                    fontSize = 10
-                };
-                if (GUILayout.Button(new GUIContent(data.Content, data.Icon), style,
-                        GUILayout.Height(18), GUILayout.Width(width * ratio)))
-                {
-                    EditorGUIUtility.PingObject(data.Obj);
+                    _sceneReferences = SoapEditorUtils.FindReferencesInScene(_scriptableBase);
                 }
-
-                style = new GUIStyle(EditorStyles.helpBox)
-                {
-                    margin = new RectOffset(0, 0, 0, 0),
-                    stretchWidth = false,
-                    wordWrap = false,
-                    alignment = TextAnchor.MiddleLeft
-                };
-                EditorGUILayout.LabelField(data.Argument, style, GUILayout.Width(width * (1 - ratio)));
-                EditorGUILayout.EndHorizontal();
             }
 
-            Texture GetComponentIcon(Type componentType)
+            if (_sceneFoldout)
             {
-                if (typeof(EventListenerBase).IsAssignableFrom(componentType))
+                if (_sceneReferences != null)
                 {
-                    return _icons[2];
+                    foreach (var sceneReference in _sceneReferences)
+                    {
+                        if (sceneReference.Item1 == null) //object could have been deleted (for manual refresh mode)
+                            continue;
+                        Texture icon = GetComponentIcon(sceneReference.Item2);
+                        var data = new ReferenceEntryData
+                        {
+                            Obj = sceneReference.Item1,
+                            Icon = icon,
+                            Content = $"{sceneReference.Item1.name} ({sceneReference.Item2.Name})",
+                            Argument = sceneReference.Item3
+                        };
+                        DrawReferenceEntry(data, 0.7f);
+                    }
                 }
-
-                if (typeof(Button).IsAssignableFrom(componentType))
-                {
-                    return _icons[3];
-                }
-
-                return _icons[4];
             }
+        }
+
+        private void DrawProjectReferences()
+        {
+            var suffix = _assetReferences == null ? "" : $"({_assetReferences.Count})";
+            var foldoutText = $"Assets {suffix}";
+            var newFoldoutState = EditorGUILayout.Foldout(_assetFoldout, new GUIContent(foldoutText, _icons[1]),
+                true,
+                _foldoutStyle);
+
+            if (newFoldoutState != _assetFoldout)
+            {
+                _assetFoldout = newFoldoutState;
+                if (_assetFoldout)
+                {
+                    _assetReferences = SoapEditorUtils.FindReferencesInProject(_scriptableBase);
+                }
+            }
+
+            if (_assetFoldout)
+            {
+                if (_assetReferences != null)
+                {
+                    foreach (var assetReference in _assetReferences)
+                    {
+                        var assetPath = assetReference.Key;
+                        var mainAsset = AssetDatabase.LoadMainAssetAtPath(assetPath);
+                        if (mainAsset == null) //object could have been deleted (for manual refresh mode)
+                            continue;
+                        var objectContent = EditorGUIUtility.ObjectContent(mainAsset, mainAsset.GetType());
+                        Texture2D icon = objectContent.image as Texture2D;
+                        var path = assetPath.Remove(0, 7);
+                        var data = new ReferenceEntryData
+                        {
+                            Obj = mainAsset,
+                            Icon = icon,
+                            Content = mainAsset.name,
+                            Argument = assetReference.Value.ToString()
+                        };
+                        DrawReferenceEntry(data, 0.7f);
+                    }
+                }
+            }
+        }
+
+
+        void DrawReferenceEntry(ReferenceEntryData data, float ratio)
+        {
+            var width = position.width - 45; //weird offset but hey !
+            EditorGUILayout.BeginHorizontal();
+            var style = new GUIStyle(EditorStyles.objectField)
+            {
+                margin = new RectOffset(4, 0, 2, 2),
+                padding = new RectOffset(2, 2, 2, 2),
+                alignment = TextAnchor.MiddleLeft,
+                fontSize = 10
+            };
+            if (GUILayout.Button(new GUIContent(data.Content, data.Icon), style,
+                    GUILayout.Height(18), GUILayout.Width(width * ratio)))
+            {
+                EditorGUIUtility.PingObject(data.Obj);
+            }
+
+            style = new GUIStyle(EditorStyles.helpBox)
+            {
+                margin = new RectOffset(0, 0, 0, 0),
+                stretchWidth = false,
+                wordWrap = false,
+                alignment = TextAnchor.MiddleLeft
+            };
+            EditorGUILayout.LabelField(data.Argument, style, GUILayout.Width(width * (1 - ratio)));
+            EditorGUILayout.EndHorizontal();
+        }
+
+        Texture GetComponentIcon(Type componentType)
+        {
+            if (typeof(EventListenerBase).IsAssignableFrom(componentType))
+            {
+                return _icons[2];
+            }
+
+            if (typeof(Button).IsAssignableFrom(componentType))
+            {
+                return _icons[3];
+            }
+
+            return _icons[4];
         }
 
         private void OnHierarchyChanged()
@@ -228,7 +249,7 @@ namespace Obvious.Soap.Editor
 
         private void OnProjectChanged()
         {
-            _assetReferences = SoapEditorUtils.FindReferencesInAssets(_scriptableBase);
+            _assetReferences = SoapEditorUtils.FindReferencesInProject(_scriptableBase);
             Repaint();
         }
 
@@ -239,5 +260,13 @@ namespace Obvious.Soap.Editor
             public string Content;
             public string Argument;
         }
+    }
+
+    [Flags]
+    public enum FindReferenceType
+    {
+        Scene = 1,
+        Project = 2,
+        All = Scene | Project
     }
 }

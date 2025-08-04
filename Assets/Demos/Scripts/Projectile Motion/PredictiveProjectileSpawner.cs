@@ -217,6 +217,16 @@ public class PredictiveProjectileSpawner : ProjectileSpawner
         return target.position + targetNavMeshAgent.velocity * timeToImpact.Value;
     }
 
+    protected override void Update()
+    {
+        base.Update();
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            FindTarget();
+        }
+    }
+
     private GameObject GetTarget()
     {
         GameObject[] targets = GameObject.FindGameObjectsWithTag("Enemy");
@@ -235,15 +245,25 @@ public class PredictiveProjectileSpawner : ProjectileSpawner
     {
         if (target != null) return;
 
-        GameObject targetObject = GetTarget();
+        GameObject[] targets = GameObject.FindGameObjectsWithTag("Enemy");
+
+        GameObject targetObject = null;
+
+        if (targets.Length > 0)
+        {
+            // For simplicity, return the first target found
+            targetObject = targets[0];
+        }
 
         if (targetObject == null)
         {
             Debug.LogWarning("Please assign a target in the inspector or ensure there is an object with the 'Enemy' tag.");
             return;
         }
-
-        target = targetObject != null ? targetObject.transform : null;
-        targetNavMeshAgent = targetObject != null ? targetObject.GetComponent<NavMeshAgent>() : null;
+        else
+        {
+            target = targetObject.transform;
+            targetNavMeshAgent = targetObject.GetComponent<NavMeshAgent>();
+        }
     }
 }

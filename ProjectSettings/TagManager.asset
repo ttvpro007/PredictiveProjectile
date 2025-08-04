@@ -7,6 +7,7 @@ TagManager:
   - Ignore Collision
   - Collision Target
   - MapCenter
+  - Enemy
   layers:
   - Default
   - TransparentFX

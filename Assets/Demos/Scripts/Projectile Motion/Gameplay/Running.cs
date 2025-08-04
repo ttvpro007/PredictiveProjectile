@@ -56,10 +56,8 @@ public class Running : MonoBehaviour
     private void OnDisable()
     {
         StopAllCoroutines();
-        run = false;
         agent.enabled = false;
         rb.isKinematic = false;
-        //agent.ResetPath();
         CurrentDestination = Vector3.zero;
         CurrentVelocity = Vector3.zero;
         OnDestinationChanged = _ => { };

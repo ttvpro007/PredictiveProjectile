@@ -48,7 +48,7 @@ namespace Obvious.Soap.Editor
         {
             var container = (IDrawObjectsInInspector)target;
             var gameObjects = container.GetAllObjects();
-            var title = $"List Count : {gameObjects.Count}";
+            var title = $"List Count : {_scriptableListBase.Count}";
             EditorGUILayout.LabelField(title);
             foreach (var obj in gameObjects)
                 EditorGUILayout.ObjectField(obj, typeof(Object), true);

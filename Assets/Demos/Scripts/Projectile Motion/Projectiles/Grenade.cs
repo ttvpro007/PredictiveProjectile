@@ -68,7 +68,7 @@ public class Grenade : Projectile, IExplosive
         {
             if (nearbyObject.TryGetComponent<Health>(out var health))
             {
-                health.TakeDamage((int)explosionDamage);
+                DealDamage(health, explosionDamage);
             }
 
             // Reduce countdown of nearby grenades

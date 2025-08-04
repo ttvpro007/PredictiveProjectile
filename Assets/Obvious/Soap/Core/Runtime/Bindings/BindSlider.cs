@@ -14,9 +14,10 @@ namespace Obvious.Soap
     public class BindSlider : CacheComponent<Slider>
     {
         [SerializeField] private FloatVariable _floatVariable = null;
+        [Tooltip("If true, the max value is taken from the bound variable's max value")]
         [SerializeField] private bool _useMaxValueFromVariable = false;
 #if ODIN_INSPECTOR
-        [ShowIf("_useMaxValueFromVariable", false)]
+        [HideIf("_useMaxValueFromVariable")]
 #endif
         [SerializeField] private FloatReference _maxValue = new FloatReference(100, true);
 

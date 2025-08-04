@@ -110,15 +110,7 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
     protected float GetCalculatedDamage(float damage)
     {
         // Apply random modifier within percentage range
-        damage *= 1f + Random.Range(modifierPercentage.x, modifierPercentage.y);
-
-        // Apply critical hit multiplier
-        if (Random.Range(0f, 1f) <= critChance)
-        {
-            damage *= 2f; // Critical hit doubles the damage
-        } 
-
-        return damage;
+        return Mathf.Round(damage * 1f + Random.Range(modifierPercentage.x, modifierPercentage.y));
     }
 
     /// <summary>
@@ -147,7 +139,20 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
     /// <param name="damage">The base damage to deal.</param>
     protected virtual void DealDamage(Health health, float damage)
     {
-        health.TakeDamage((int)GetCalculatedDamage(damage));
+        if (Random.Range(0f, 1f) <= critChance)
+        {
+            // If a critical hit occurs, deal critical damage
+            health.TakeCriticalDamage((int)GetCalculatedDamage(damage) * 2);
+        }
+        else
+        {
+            health.TakeDamage((int)GetCalculatedDamage(damage));
+        }
+    }
+
+    protected void DealFlatDamage(Health health, float damage)
+    {
+        health.TakeDamage((int) damage);
     }
 
     protected void SetModelActive(bool active)
