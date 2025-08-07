@@ -8,10 +8,14 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
 {
     [SerializeField, InlineEditor] private GameplayObjectDataSO gameplayObjectData;
 
+    public float SpawnInterval => spawnInterval;
     public GameObject UIGameObject => gameplayObjectData.UIGameObject;
     public GameObject GameplayGameObject => gameplayObjectData.GameplayGameObject;
     public string Description => gameplayObjectData.Description;
     public IReadOnlyCollection<IDisplayable.Displayable> DisplayFields => gameplayObjectData.DisplayFields;
+
+    [Tooltip("The interval at which this projectile can be spawned, in seconds.")]
+    [SerializeField, Range(1f, 3f)] protected float spawnInterval = 1f;
 
     // Serialized Fields
     [Tooltip("The amount of damage this projectile deals upon impact.")]

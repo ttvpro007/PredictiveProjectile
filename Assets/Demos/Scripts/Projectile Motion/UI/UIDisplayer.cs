@@ -14,30 +14,8 @@ public class UIDisplayer : MonoBehaviour
     public List<GameObject> StatRows = new();
 
     private List<GameObject> projectilePrefabs = new();
-    private Dictionary<Projectile, IReadOnlyCollection<IDisplayable.Displayable>> projectileDisplayFields = new();
-    private Dictionary<Projectile, GameObject> runtimeUIGameObjects = new();
-
-    private void Start()
-    {
-        //// Iterate over each projectile in the list
-        //foreach (var projectile in ProjectilePrefabs)
-        //{
-        //    UpdateProjectileDisplayFields(projectile);
-
-        //    // Store the display fields in the dictionary for easy access
-        //    ProjectileDisplayFields[projectile] = projectile.DisplayFields;
-
-        //    // Store the runtime game objects in the dictionary for easy access
-        //    var runtimeUIGameObject = Instantiate(projectile.UIGameObject, ObjectHolderTransform);
-        //    runtimeUIGameObject.SetActive(false);
-        //    RuntimeUIGameObjects[projectile] = runtimeUIGameObject;
-        //}
-
-        //if (!ProjectilePrefabs.IsNullOrEmpty())
-        //{
-        //    UpdateDisplayForProjectile(Projectiles[0]);
-        //}
-    }
+    private readonly Dictionary<Projectile, IReadOnlyCollection<IDisplayable.Displayable>> projectileDisplayFields = new();
+    private readonly Dictionary<Projectile, GameObject> runtimeUIGameObjects = new();
 
     private void UpdateProjectileDisplayFields(Projectile projectile)
     {

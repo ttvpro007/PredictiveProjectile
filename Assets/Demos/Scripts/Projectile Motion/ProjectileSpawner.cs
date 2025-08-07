@@ -1,4 +1,5 @@
 using Obvious.Soap;
+using System;
 using UnityEngine;
 
 public class ProjectileSpawner : MonoBehaviour
@@ -49,8 +50,13 @@ public class ProjectileSpawner : MonoBehaviour
 
     [SerializeField] protected Transform curveMaxHeightTransform;
 
+    public event Action<Projectile> OnProjectileSpawned;
+
     protected Vector3 launchDirection;
     private Vector3 initialVelocity;
+
+    protected bool CanSpawn => Time.time >= nextSpawnTime;
+    protected float nextSpawnTime;
 
     /// <summary>
     /// Sets the launch force.
@@ -125,6 +131,8 @@ public class ProjectileSpawner : MonoBehaviour
     /// </summary>
     public void SpawnProjectile()
     {
+        if (!CanSpawn) return;
+
         if (projectilePrefab == null || spawnPoint == null) return;
 
         // Instantiate the projectile at the spawn point's position and rotation
@@ -139,5 +147,8 @@ public class ProjectileSpawner : MonoBehaviour
             // Apply force in the calculated direction
             rb.AddForce(initialVelocity, ForceMode.Impulse);
         }
+
+        nextSpawnTime = Time.time + projectile.SpawnInterval; // Set the next spawn time
+        OnProjectileSpawned?.Invoke(projectile);
     }
 }
