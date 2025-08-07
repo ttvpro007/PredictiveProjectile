@@ -1,4 +1,5 @@
 using Obvious.Soap;
+using Obvious.Soap.Example;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -217,28 +218,19 @@ public class PredictiveProjectileSpawner : ProjectileSpawner
         return target.position + targetNavMeshAgent.velocity * timeToImpact.Value;
     }
 
+    private float pollInterval = 0.5f; // Interval to check for target
+    private float nextPollTime = 0f;
+
     protected override void Update()
     {
         base.Update();
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (target == null && Time.time >= nextPollTime)
         {
+            Debug.LogWarning("Target is null. Polling to find target.");
             FindTarget();
+            nextPollTime = Time.time + pollInterval;
         }
-    }
-
-    private GameObject GetTarget()
-    {
-        GameObject[] targets = GameObject.FindGameObjectsWithTag("Enemy");
-
-        if (targets.Length > 0)
-        {
-            // For simplicity, return the first target found
-            return targets[0];
-        }
-
-        Debug.LogWarning("No target found with tag 'Enemy'.");
-        return null;
     }
 
     private void FindTarget()
@@ -261,9 +253,24 @@ public class PredictiveProjectileSpawner : ProjectileSpawner
             return;
         }
         else
-        {
+        {            
+            if (targetObject.TryGetComponent<Health>(out var targetHealth))
+            {
+                targetHealth.OnDeath -= HandleTargetDeath; // Unsubscribe to avoid multiple subscriptions
+                targetHealth.OnDeath += HandleTargetDeath;
+            }
+
             target = targetObject.transform;
             targetNavMeshAgent = targetObject.GetComponent<NavMeshAgent>();
         }
+    }
+
+    private void HandleTargetDeath()
+    {
+        target = null;
+        targetNavMeshAgent = null;
+
+        Debug.Log("Target has died. Finding new target.");
+        FindTarget();
     }
 }

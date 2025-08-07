@@ -6,15 +6,12 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public abstract class Projectile : MonoBehaviour, IDisplayable
 {
-    [SerializeField] private GameObject uiGameObject;
-    [SerializeField] private GameObject gameplayGameObject;
-    [SerializeField] private string description;
-    [SerializeField] private List<IDisplayable.Displayable> displayFields;
+    [SerializeField, InlineEditor] private GameplayObjectDataSO gameplayObjectData;
 
-    public GameObject UIGameObject => uiGameObject;
-    public GameObject GameplayGameObject => gameplayGameObject;
-    public string Description => description;
-    public List<IDisplayable.Displayable> DisplayFields => displayFields;
+    public GameObject UIGameObject => gameplayObjectData.UIGameObject;
+    public GameObject GameplayGameObject => gameplayObjectData.GameplayGameObject;
+    public string Description => gameplayObjectData.Description;
+    public IReadOnlyCollection<IDisplayable.Displayable> DisplayFields => gameplayObjectData.DisplayFields;
 
     // Serialized Fields
     [Tooltip("The amount of damage this projectile deals upon impact.")]
@@ -42,6 +39,18 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
 
     protected Vector3 hitPointPosition;
     protected GameObject hitPointInstance;
+
+    public GameObject SpawnGameplayObject(Transform holder)
+    {
+        GameObject gameObject = Instantiate(gameplayObjectData.GameplayGameObject, holder);
+
+        gameObject.transform.SetLocalPositionAndRotation(
+            gameplayObjectData.SpawnPosition,
+            Quaternion.Euler(gameplayObjectData.SpawnRotation)
+        );
+
+        return gameObject;
+    }
 
     // Public Methods
     /// <summary>
@@ -122,7 +131,11 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
         // Instantiate the on-hit visual effect at the projectile's position
         if (onHitEffect != null)
         {
-            Instantiate(onHitEffect, transform.position, transform.rotation);
+            var onHitEffectInstance = Instantiate(onHitEffect, transform.position, transform.rotation);
+            VT.ReusableSystems.Timers.Timer.Create(1f)
+                .OnComplete(() => Destroy(onHitEffectInstance))
+                .AutoDispose()
+                .Start();
         }
 
         // Apply damage if the collision object has a Health component
@@ -165,11 +178,29 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
 
     public virtual void UpdateDisplayFieldsInfo<T>(T projectile) where T : Projectile
     {
-        foreach (var displayable in displayFields)
+        foreach (var displayable in gameplayObjectData.DisplayFields)
         {
             displayable.Value = ReflectionHelper.GetPrivateFieldValue(projectile, displayable.Field);
         }
     }
+}
+
+[System.Serializable]
+public struct GameplayObjectData
+{
+    [SerializeField] private GameObject uiGameObject;
+    [SerializeField] private GameObject gameplayGameObject;
+    [SerializeField] private Vector3 spawnPosition;
+    [SerializeField] private Vector3 spawnRotation;
+    [SerializeField] private string description;
+    [SerializeField] private List<IDisplayable.Displayable> displayFields;
+
+    public GameObject UIGameObject => uiGameObject;
+    public GameObject GameplayGameObject => gameplayGameObject;
+    public Vector3 SpawnPosition => spawnPosition;
+    public Vector3 SpawnRotation => spawnRotation;
+    public string Description => description;
+    public List<IDisplayable.Displayable> DisplayFields => displayFields;
 }
 
 public interface IExplosive
@@ -195,5 +226,5 @@ public interface IDisplayable
     GameObject UIGameObject { get; }
     GameObject GameplayGameObject { get; }
     string Description { get; }
-    List<Displayable> DisplayFields { get; }
+    IReadOnlyCollection<Displayable> DisplayFields { get; }
 }

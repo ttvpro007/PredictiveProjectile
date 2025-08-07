@@ -11,6 +11,9 @@ public class Arrow : Projectile
     private bool hasHit = false;
     private int currentPathIndex = 0;  // Index of the current point in TrajectoryPath
 
+    private float totalLifetime = 15f;
+    private float lifetime = 0f;
+
     // Unity Lifecycle Methods
     protected override void Start()
     {
@@ -21,19 +24,29 @@ public class Arrow : Projectile
 
     private void Update()
     {
-        if (hasHit)
+        if (lifetime < totalLifetime)
         {
-            // Countdown before destruction after hitting a target
-            countdown -= Time.deltaTime;
-            if (countdown <= 0f)
+            if (hasHit)
             {
-                Destroy();
+                // Countdown before destruction after hitting a target
+                countdown -= Time.deltaTime;
+                if (countdown <= 0f)
+                {
+                    Destroy();
+                }
             }
+            else
+            {
+                // Rotate along the trajectory while the arrow is in flight
+                RotateAlongTrajectory();
+            }
+
+            lifetime += Time.deltaTime;
         }
         else
         {
-            // Rotate along the trajectory while the arrow is in flight
-            RotateAlongTrajectory();
+            // Destroy the arrow after its total lifetime has elapsed
+            Destroy();
         }
     }
 

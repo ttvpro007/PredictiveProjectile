@@ -1,4 +1,5 @@
 using System.Reflection;
+using UnityEngine;
 
 public static class ReflectionHelper
 {
@@ -31,6 +32,17 @@ public static class ReflectionHelper
     public static bool CastProjectile<T>(Projectile projectile, out T result) where T : Projectile
     {
         result = projectile as T;
+        return result != null;
+    }
+
+    /// <summary>
+    /// Try to cast a MonoBehaviour (or any subclass) to a more derived MonoBehaviour type.
+    /// </summary>
+    public static bool CastBehaviourAs<TBase, TDerived>(TBase monoBehaviour, out TDerived result)
+        where TBase : MonoBehaviour
+        where TDerived : TBase
+    {
+        result = monoBehaviour as TDerived;
         return result != null;
     }
 }

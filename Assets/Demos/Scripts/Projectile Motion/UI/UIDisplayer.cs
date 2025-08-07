@@ -6,37 +6,37 @@ using UnityEngine;
 public class UIDisplayer : MonoBehaviour
 {
     // A list to hold any projectile types (Arrow, Grenade, Molotov, etc.)
-    public List<Projectile> Projectiles;
-    public Dictionary<Projectile, List<IDisplayable.Displayable>> ProjectileDisplayFields = new();
-
-    public RectTransform ObjectHolderTransform;
-    public TMP_Text DescriptionTextField;
-    public GameObject StatRow;
-
-    public Dictionary<Projectile, GameObject> RuntimeUIGameObjects = new();
+    [SerializeField] private List<Projectile> Projectiles;
+    [SerializeField] private RectTransform ObjectHolderTransform;
+    [SerializeField] private TMP_Text DescriptionTextField;
+    [SerializeField] private GameObject StatRow;
 
     public List<GameObject> StatRows = new();
 
+    private List<GameObject> projectilePrefabs = new();
+    private Dictionary<Projectile, IReadOnlyCollection<IDisplayable.Displayable>> projectileDisplayFields = new();
+    private Dictionary<Projectile, GameObject> runtimeUIGameObjects = new();
+
     private void Start()
     {
-        // Iterate over each projectile in the list
-        foreach (var projectile in Projectiles)
-        {
-            UpdateProjectileDisplayFields(projectile);
+        //// Iterate over each projectile in the list
+        //foreach (var projectile in ProjectilePrefabs)
+        //{
+        //    UpdateProjectileDisplayFields(projectile);
 
-            // Store the display fields in the dictionary for easy access
-            ProjectileDisplayFields[projectile] = projectile.DisplayFields;
+        //    // Store the display fields in the dictionary for easy access
+        //    ProjectileDisplayFields[projectile] = projectile.DisplayFields;
 
-            // Store the runtime game objects in the dictionary for easy access
-            var runtimeUIGameObject = Instantiate(projectile.UIGameObject, ObjectHolderTransform);
-            runtimeUIGameObject.SetActive(false);
-            RuntimeUIGameObjects[projectile] = runtimeUIGameObject;
-        }
+        //    // Store the runtime game objects in the dictionary for easy access
+        //    var runtimeUIGameObject = Instantiate(projectile.UIGameObject, ObjectHolderTransform);
+        //    runtimeUIGameObject.SetActive(false);
+        //    RuntimeUIGameObjects[projectile] = runtimeUIGameObject;
+        //}
 
-        if (!Projectiles.IsNullOrEmpty())
-        {
-            UpdateDisplayForProjectile(Projectiles[0]);
-        }
+        //if (!ProjectilePrefabs.IsNullOrEmpty())
+        //{
+        //    UpdateDisplayForProjectile(Projectiles[0]);
+        //}
     }
 
     private void UpdateProjectileDisplayFields(Projectile projectile)
@@ -52,6 +52,48 @@ public class UIDisplayer : MonoBehaviour
         else if (ReflectionHelper.CastProjectile<Molotov>(projectile, out var molotov))
         {
             projectile.UpdateDisplayFieldsInfo(molotov);
+        }
+    }
+
+    public void Init(List<GameObject> projectilePrefabs)
+    {
+        this.projectilePrefabs = projectilePrefabs;
+
+        // Iterate over each projectile in the list
+        for (int i = 0; i < projectilePrefabs.Count; i++)
+        {
+            if (projectilePrefabs[i].TryGetComponent<Projectile>(out var projectile))
+            {
+                UpdateProjectileDisplayFields(projectile);
+
+                // Store the display fields in the dictionary for easy access
+                projectileDisplayFields[projectile] = projectile.DisplayFields;
+
+                // Store the runtime game objects in the dictionary for easy access
+                var runtimeUIGameObject = Instantiate(projectile.UIGameObject, ObjectHolderTransform);
+                runtimeUIGameObject.SetActive(false);
+                runtimeUIGameObjects[projectile] = runtimeUIGameObject;
+            }
+        }
+
+        if (!projectilePrefabs.IsNullOrEmpty())
+            SwitchTo(0);
+    }
+
+    public void SwitchTo(int index)
+    {
+        if (index < 0 || index >= projectilePrefabs.Count)
+        {
+            Debug.LogWarning("Index out of range for ProjectilePrefabs.");
+            return;
+        }
+
+        var projectilePrefab = projectilePrefabs[index];
+
+        if (projectilePrefab.TryGetComponent(out Projectile projectile)
+            && runtimeUIGameObjects.ContainsKey(projectile))
+        {
+            UpdateDisplayForProjectile(projectile);
         }
     }
 
@@ -76,10 +118,10 @@ public class UIDisplayer : MonoBehaviour
         TurnOffAllUIGameObject();
         RemoveAllStatRows();
 
-        RuntimeUIGameObjects[projectile].SetActive(true);
+        runtimeUIGameObjects[projectile].SetActive(true);
         DescriptionTextField.text = projectile.Description;
 
-        foreach (var displayableField in ProjectileDisplayFields[projectile])
+        foreach (var displayableField in projectileDisplayFields[projectile])
         {
             var statRow = Instantiate(StatRow, transform).GetComponent<StatRow>();
             statRow.IconDisplayer.sprite = displayableField.Icon;
@@ -91,7 +133,7 @@ public class UIDisplayer : MonoBehaviour
 
     private void TurnOffAllUIGameObject()
     {
-        foreach (var go in RuntimeUIGameObjects.Values)
+        foreach (var go in runtimeUIGameObjects.Values)
         {
             go.SetActive(false);
         }
