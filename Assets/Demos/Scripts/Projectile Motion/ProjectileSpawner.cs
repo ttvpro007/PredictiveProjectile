@@ -148,7 +148,7 @@ public class ProjectileSpawner : MonoBehaviour
             rb.AddForce(initialVelocity, ForceMode.Impulse);
         }
 
-        nextSpawnTime = Time.time + projectile.SpawnInterval; // Set the next spawn time
+        nextSpawnTime = Time.time + projectile.Cooldown; // Set the next spawn time
         OnProjectileSpawned?.Invoke(projectile);
     }
 }

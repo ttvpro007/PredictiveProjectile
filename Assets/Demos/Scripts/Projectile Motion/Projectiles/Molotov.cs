@@ -7,9 +7,11 @@ public class Molotov : Projectile, IExplosive
     [SerializeField] private GameObject explosionEffect;
 
     [Tooltip("Damage dealt by the explosion.")]
+    [DisplayField("Explosion Damage", "Icons/boom")]
     [SerializeField] private float explosionDamage = 3f;
 
     [Tooltip("Radius of the explosion effect.")]
+    [DisplayField("Explosion Radius", "Icons/radius")]
     [SerializeField] private float explosionRadius = 3f;
 
     [Tooltip("Prefab for the burn visual effect.")]
@@ -19,12 +21,15 @@ public class Molotov : Projectile, IExplosive
     [SerializeField] private GameObject burnEffectPrefab;
 
     [Tooltip("Damage dealt over time by burning.")]
+    [DisplayField("Burn Damage", "Icons/fire")]
     [SerializeField] private float burnDamage = 3f;
 
     [Tooltip("Duration of the burn effect.")]
+    [DisplayField("Burn Duration", "Icons/clock")]
     [SerializeField] private float burnDuration = 5f;
 
     [Tooltip("Interval for applying burn damage.")]
+    [DisplayField("Burn Interval", "Icons/clock_2")]
     [SerializeField] private float burnInterval = 1f;
 
     private bool hasExploded = false;

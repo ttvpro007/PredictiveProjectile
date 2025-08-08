@@ -2,37 +2,40 @@ using UnityEngine;
 using UnityEngine.UI;
 using VT.ReusableSystems.Timers;
 
-[RequireComponent(typeof(Button))]
-public class ButtonEnabler : MonoBehaviour
+public class DemoButton : Button
 {
     [SerializeField] private Image progressImage;
     [SerializeField] private PredictiveProjectileSpawner thrower;
 
-    private Button button;
     private Timer timer;
 
-    private void Awake()
+    protected override void Awake()
     {
-        button = GetComponent<Button>();
+        base.Awake();
+
         timer = Timer.Create();
         UpdateProgress(1f);
     }
 
-    private void OnEnable()
+    protected override void OnEnable()
     {
-        thrower.OnProjectileSpawned -= Thrower_OnProjectileSpawned;
-        thrower.OnProjectileSpawned += Thrower_OnProjectileSpawned;
+        base.OnEnable();
+        
+        thrower.OnProjectileSpawned -= HandleOnProjectileSpawned;
+        thrower.OnProjectileSpawned += HandleOnProjectileSpawned;
     }
 
-    private void OnDisable()
+    protected override void OnDisable()
     {
+        base.OnDisable();
+
         timer?.Stop();
-        thrower.OnProjectileSpawned -= Thrower_OnProjectileSpawned;
+        thrower.OnProjectileSpawned -= HandleOnProjectileSpawned;
     }
 
-    private void Thrower_OnProjectileSpawned(Projectile projectile)
+    private void HandleOnProjectileSpawned(Projectile projectile)
     {
-        DisableAndEnable(projectile.SpawnInterval + 0.1f);
+        DisableAndEnable(projectile.Cooldown + 0.1f);
     }
 
     public void DisableAndEnable(float enableDelay)
@@ -60,20 +63,12 @@ public class ButtonEnabler : MonoBehaviour
     private void EnableButton()
     {
         UpdateProgress(1f);
-
-        if (button != null)
-        {
-            button.interactable = true;
-        }
+        interactable = true;
     }
 
     private void DisableButton()
     {
         UpdateProgress(0f);
-
-        if (button != null)
-        {
-            button.interactable = false;
-        }
+        interactable = false;
     }
 }

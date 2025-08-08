@@ -171,8 +171,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26de9101977168749999b1a9fe5a0bc1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawnInterval: 2
   gameplayObjectData: {fileID: 11400000, guid: 9086d69a38ae15c4bb5fb75637690c47, type: 2}
+  cooldown: 2
   onHitDamage: 5
   modifierPercentage: {x: -0.3, y: 0.3}
   hitPointPrefab: {fileID: 4107697869088053130, guid: 0d7e8fc040bcc8942911bc14a194a75c, type: 3}

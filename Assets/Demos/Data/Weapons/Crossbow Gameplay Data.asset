@@ -19,8 +19,8 @@ MonoBehaviour:
   description: A ranged weapon launching arrows with precision and speed.
   displayFields:
   - Icon: {fileID: 21300000, guid: 669853c2407ccae4fa17d7b3d858d344, type: 3}
-    Field: spawnInterval
-    Value: 1
+    Field: cooldown
+    Value: Field not found
   - Icon: {fileID: 21300000, guid: 06d40cd9906418d429878fbe00a54d28, type: 3}
     Field: onHitDamage
     Value: 15

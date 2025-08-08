@@ -8,12 +8,15 @@ public class Grenade : Projectile, IExplosive
     [SerializeField] private GameObject explosionEffect;
 
     [Tooltip("Damage dealt by the explosion.")]
+    [DisplayField("Explosion Damage", "Icons/boom")]
     [SerializeField] private float explosionDamage = 3f;
 
     [Tooltip("Radius of the explosion effect.")]
+    [DisplayField("Explosion Radius", "Icons/radius")]
     [SerializeField] private float explosionRadius = 3f;
 
     [Tooltip("Delay before the grenade explodes.")]
+    [DisplayField("Explosion Delay", "Icons/clock")]
     [SerializeField] private float explosionDelay = 3f;
 
     [Tooltip("Percentage reduction for nearby grenades.")]

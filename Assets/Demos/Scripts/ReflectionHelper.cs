@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
@@ -28,6 +29,40 @@ public static class ReflectionHelper
         return "Field not found";
     }
 
+    /// <summary>
+    /// Finds all instance fields on obj tagged with [DisplayField],
+    /// reads their values, and returns (Label,Value) pairs.
+    /// </summary>
+    public static IEnumerable<(Sprite icon, string Label, string Value)> GetDisplayFields(object obj)
+    {
+        if (obj == null) yield break;
+
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+        var type = obj.GetType();
+
+        foreach (var fi in type.GetFields(flags))
+        {
+            var attr = fi.GetCustomAttribute<DisplayFieldAttribute>();
+            if (attr == null) continue;
+
+            // 1) Icon
+            Sprite icon = null;
+            if (!string.IsNullOrEmpty(attr.IconPath))
+            {
+                // assumes your sprite lives in a Resources folder:
+                icon = Resources.Load<Sprite>(attr.IconPath);
+            }
+
+            // 2) Label
+            var label = string.IsNullOrEmpty(attr.Label) ? fi.Name : attr.Label;
+
+            // 3) Value
+            var rawVal = fi.GetValue(obj);
+            var strVal = rawVal?.ToString() ?? "null";
+
+            yield return (icon, label, strVal);
+        }
+    }
 
     public static bool CastProjectile<T>(Projectile projectile, out T result) where T : Projectile
     {

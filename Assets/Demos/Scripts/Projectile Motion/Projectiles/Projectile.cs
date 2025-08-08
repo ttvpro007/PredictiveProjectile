@@ -1,6 +1,5 @@
 using Obvious.Soap.Example;
 using Sirenix.OdinInspector;
-using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -8,17 +7,18 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
 {
     [SerializeField, InlineEditor] private GameplayObjectDataSO gameplayObjectData;
 
-    public float SpawnInterval => spawnInterval;
+    public float Cooldown => cooldown;
     public GameObject UIGameObject => gameplayObjectData.UIGameObject;
     public GameObject GameplayGameObject => gameplayObjectData.GameplayGameObject;
     public string Description => gameplayObjectData.Description;
-    public IReadOnlyCollection<IDisplayable.Displayable> DisplayFields => gameplayObjectData.DisplayFields;
 
     [Tooltip("The interval at which this projectile can be spawned, in seconds.")]
-    [SerializeField, Range(1f, 3f)] protected float spawnInterval = 1f;
+    [DisplayField("Cooldown", "Icons/clock_3")]
+    [SerializeField, Range(1f, 3f)] protected float cooldown = 1f;
 
     // Serialized Fields
     [Tooltip("The amount of damage this projectile deals upon impact.")]
+    [DisplayField("Hit Damage", "Icons/bullseye")]
     [SerializeField] protected int onHitDamage;
 
     [Tooltip("The percentage range for damage modifiers.")]
@@ -32,6 +32,7 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
     [SerializeField] private GameObject onHitEffect;
 
     [Tooltip("Critical hit chance represented as a value between 0 and 1.")]
+    [DisplayField("Crit Chance", "Icons/critical")]
     [Range(0f, 1f)]
     [SerializeField] protected float critChance;
 
@@ -179,32 +180,6 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
             modelTransform.gameObject.SetActive(active);
         }
     }
-
-    public virtual void UpdateDisplayFieldsInfo<T>(T projectile) where T : Projectile
-    {
-        foreach (var displayable in gameplayObjectData.DisplayFields)
-        {
-            displayable.Value = ReflectionHelper.GetPrivateFieldValue(projectile, displayable.Field);
-        }
-    }
-}
-
-[System.Serializable]
-public struct GameplayObjectData
-{
-    [SerializeField] private GameObject uiGameObject;
-    [SerializeField] private GameObject gameplayGameObject;
-    [SerializeField] private Vector3 spawnPosition;
-    [SerializeField] private Vector3 spawnRotation;
-    [SerializeField] private string description;
-    [SerializeField] private List<IDisplayable.Displayable> displayFields;
-
-    public GameObject UIGameObject => uiGameObject;
-    public GameObject GameplayGameObject => gameplayGameObject;
-    public Vector3 SpawnPosition => spawnPosition;
-    public Vector3 SpawnRotation => spawnRotation;
-    public string Description => description;
-    public List<IDisplayable.Displayable> DisplayFields => displayFields;
 }
 
 public interface IExplosive
@@ -224,11 +199,10 @@ public interface IDisplayable
     {
         public Sprite Icon;
         public string Field;
-        public string Value;
+        [ReadOnly] public string Value;
     }
 
     GameObject UIGameObject { get; }
     GameObject GameplayGameObject { get; }
     string Description { get; }
-    IReadOnlyCollection<Displayable> DisplayFields { get; }
 }

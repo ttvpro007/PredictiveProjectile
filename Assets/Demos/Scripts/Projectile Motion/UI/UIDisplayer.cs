@@ -2,6 +2,7 @@ using Sirenix.Utilities;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using static IDisplayable;
 
 public class UIDisplayer : MonoBehaviour
 {
@@ -14,22 +15,41 @@ public class UIDisplayer : MonoBehaviour
     public List<GameObject> StatRows = new();
 
     private List<GameObject> projectilePrefabs = new();
-    private readonly Dictionary<Projectile, IReadOnlyCollection<IDisplayable.Displayable>> projectileDisplayFields = new();
+    private readonly Dictionary<Projectile, List<Displayable>> projectileDisplayFields = new();
     private readonly Dictionary<Projectile, GameObject> runtimeUIGameObjects = new();
 
     private void UpdateProjectileDisplayFields(Projectile projectile)
     {
-        if (ReflectionHelper.CastProjectile<Arrow>(projectile, out var arrow))
+        if (ReflectionHelper.CastBehaviourAs<Projectile, Arrow>(projectile, out var arrow))
         {
-            projectile.UpdateDisplayFieldsInfo(arrow);
+            UpdateDisplayFieldsInfo(arrow);
         }
-        else if (ReflectionHelper.CastProjectile<Grenade>(projectile, out var grenade))
+        else if (ReflectionHelper.CastBehaviourAs<Projectile, Grenade>(projectile, out var grenade))
         {
-            projectile.UpdateDisplayFieldsInfo(grenade);
+            UpdateDisplayFieldsInfo(grenade);
         }
-        else if (ReflectionHelper.CastProjectile<Molotov>(projectile, out var molotov))
+        else if (ReflectionHelper.CastBehaviourAs<Projectile, Molotov>(projectile, out var molotov))
         {
-            projectile.UpdateDisplayFieldsInfo(molotov);
+            UpdateDisplayFieldsInfo(molotov);
+        }
+    }
+
+    private void UpdateDisplayFieldsInfo<T>(T projectile) where T : Projectile
+    {
+        if (!projectileDisplayFields.TryGetValue(projectile, out var list))
+        {
+            list = new List<Displayable>();
+            projectileDisplayFields[projectile] = list;
+        }
+
+        foreach (var (icon, field, value) in ReflectionHelper.GetDisplayFields(projectile))
+        {
+            list.Add(new Displayable
+            {
+                Icon = icon,
+                Field = field,
+                Value = value
+            });
         }
     }
 
@@ -43,11 +63,6 @@ public class UIDisplayer : MonoBehaviour
             if (projectilePrefabs[i].TryGetComponent<Projectile>(out var projectile))
             {
                 UpdateProjectileDisplayFields(projectile);
-
-                // Store the display fields in the dictionary for easy access
-                projectileDisplayFields[projectile] = projectile.DisplayFields;
-
-                // Store the runtime game objects in the dictionary for easy access
                 var runtimeUIGameObject = Instantiate(projectile.UIGameObject, ObjectHolderTransform);
                 runtimeUIGameObject.SetActive(false);
                 runtimeUIGameObjects[projectile] = runtimeUIGameObject;
@@ -77,15 +92,15 @@ public class UIDisplayer : MonoBehaviour
 
     public void UpdateDisplayForProjectile(Projectile projectile)
     {
-        if (ReflectionHelper.CastProjectile<Arrow>(projectile, out var arrow))
+        if (ReflectionHelper.CastBehaviourAs<Projectile, Arrow>(projectile, out var arrow))
         {
             SetDisplay(arrow);
         }
-        else if (ReflectionHelper.CastProjectile<Grenade>(projectile, out var grenade))
+        else if (ReflectionHelper.CastBehaviourAs<Projectile, Grenade>(projectile, out var grenade))
         {
             SetDisplay(grenade);
         }
-        else if (ReflectionHelper.CastProjectile<Molotov>(projectile, out var molotov))
+        else if (ReflectionHelper.CastBehaviourAs<Projectile, Molotov>(projectile, out var molotov))
         {
             SetDisplay(molotov);
         }
