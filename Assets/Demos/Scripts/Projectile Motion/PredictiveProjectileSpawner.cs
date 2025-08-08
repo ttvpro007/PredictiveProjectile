@@ -59,7 +59,7 @@ public class PredictiveProjectileSpawner : ProjectileSpawner
         float y = displacement.y;  // y is the vertical displacement
 
         // Time to impact
-        float t = timeToImpact.Value;
+        float t = currentProjectile ? timeToImpact.Value + currentProjectile.SpawnDelay : timeToImpact.Value;
 
         // Gravity constant (downward acceleration due to gravity)
         float g = Mathf.Abs(Physics.gravity.y);  // Use absolute value since gravity is negative

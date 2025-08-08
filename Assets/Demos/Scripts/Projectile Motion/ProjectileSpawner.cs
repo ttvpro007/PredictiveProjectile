@@ -51,6 +51,7 @@ public class ProjectileSpawner : MonoBehaviour
     [SerializeField] protected float rotationSpeed = 5f;  // Speed at which the thrower rotates to face the runner
 
     [SerializeField] protected Transform curveMaxHeightTransform;
+    [SerializeField] private Transform aimTarget;
 
     public event Action<Projectile> OnProjectileShot;
     public event Action<Projectile> OnProjectileSpawned; // Event triggered before a projectile is shot for the delay logic
@@ -60,6 +61,8 @@ public class ProjectileSpawner : MonoBehaviour
 
     protected bool CanSpawn => Time.time >= nextSpawnTime;
     protected float nextSpawnTime;
+
+    protected Projectile currentProjectile;
 
     /// <summary>
     /// Sets the launch force.
@@ -85,12 +88,18 @@ public class ProjectileSpawner : MonoBehaviour
     {
         this.initialVelocity = initialVelocity;
 
-        spawnPoint.LookAt(initialVelocity);
+        //spawnPoint.LookAt(initialVelocity);
+
+        if (aimTarget != null)
+        {
+            aimTarget.position = initialVelocity * 5f;
+        }
     }
 
     public void SetProjectile(GameObject projectilePrefab)
     {
         this.projectilePrefab = projectilePrefab;
+        currentProjectile = projectilePrefab.GetComponent<Projectile>();
     }
 
     /// <summary>

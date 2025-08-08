@@ -4943,7 +4943,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1346215525}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 361c0018842af0b4b81ed0cccfb5bd62, type: 3}
   m_Name: 
@@ -9071,6 +9071,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2087492754426137020, guid: a34310255a702624abf465c35ce1324e, type: 3}
+      propertyPath: aimTarget
+      value: 
+      objectReference: {fileID: 1751867593}
+    - target: {fileID: 2087492754426137020, guid: a34310255a702624abf465c35ce1324e, type: 3}
       propertyPath: curveMaxHeightTransform
       value: 
       objectReference: {fileID: 491941186}
@@ -9216,15 +9220,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5643746425418601785, guid: a34310255a702624abf465c35ce1324e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 27
       objectReference: {fileID: 0}
     - target: {fileID: 5643746425418601785, guid: a34310255a702624abf465c35ce1324e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: 6.09
       objectReference: {fileID: 0}
     - target: {fileID: 5643746425418601785, guid: a34310255a702624abf465c35ce1324e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -27
       objectReference: {fileID: 0}
     - target: {fileID: 5643746425418601785, guid: a34310255a702624abf465c35ce1324e, type: 3}
       propertyPath: m_LocalRotation.w
