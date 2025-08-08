@@ -90,19 +90,17 @@ public class Arrow : Projectile
     /// <param name="collision">Collision information from Unity's physics system.</param>
     protected override void OnCollisionEnter(Collision collision)
     {
+        if (collision.gameObject.CompareTag("Ignore Collision")) return;
+
         base.OnCollisionEnter(collision);
 
-        // Ignore collisions with specific tagged objects
-        if (!collision.gameObject.CompareTag("Ignore Collision"))
-        {
-            // Deactivate rigidbody physics on impact
-            rBody.isKinematic = true;
+        // Deactivate rigidbody physics on impact
+        rBody.isKinematic = true;
 
-            // Attach the arrow to the target if it has a specific tag
-            if (collision.gameObject.CompareTag("Collision Target"))
-            {
-                transform.SetParent(collision.transform);
-            }
+        // Attach the arrow to the target if it has a specific tag
+        if (collision.gameObject.CompareTag("Collision Target"))
+        {
+            transform.SetParent(collision.transform);
         }
 
         // Set flag indicating the arrow has hit something

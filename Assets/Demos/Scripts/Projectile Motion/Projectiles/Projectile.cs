@@ -10,7 +10,9 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
     public float Cooldown => cooldown;
     public GameObject UIGameObject => gameplayObjectData.UIGameObject;
     public GameObject GameplayGameObject => gameplayObjectData.GameplayGameObject;
+    public float SpawnDelay => gameplayObjectData.SpawnDelay;
     public string Description => gameplayObjectData.Description;
+    public string AnimationTriggerName => gameplayObjectData.AnimationTriggerName;
 
     [Tooltip("The interval at which this projectile can be spawned, in seconds.")]
     [DisplayField("Cooldown", "Icons/clock_3")]
@@ -133,6 +135,8 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
     /// <param name="collision">The collision information.</param>
     protected virtual void OnCollisionEnter(Collision collision)
     {
+        if (collision.gameObject.CompareTag("Ignore Collision")) return;
+
         // Instantiate the on-hit visual effect at the projectile's position
         if (onHitEffect != null)
         {

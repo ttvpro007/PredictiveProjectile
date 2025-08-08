@@ -1,10 +1,12 @@
 using Obvious.Soap;
 using System;
+using System.Collections;
 using UnityEngine;
 
 public class ProjectileSpawner : MonoBehaviour
 {
     [Header("Projectile Settings")]
+
     /// <summary>
     /// The projectile prefab to spawn.
     /// </summary>
@@ -50,7 +52,8 @@ public class ProjectileSpawner : MonoBehaviour
 
     [SerializeField] protected Transform curveMaxHeightTransform;
 
-    public event Action<Projectile> OnProjectileSpawned;
+    public event Action<Projectile> OnProjectileShot;
+    public event Action<Projectile> OnProjectileSpawned; // Event triggered before a projectile is shot for the delay logic
 
     protected Vector3 launchDirection;
     private Vector3 initialVelocity;
@@ -126,29 +129,76 @@ public class ProjectileSpawner : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
     }
 
+    private Projectile cachedProjectile;
+
     /// <summary>
-    /// Spawns the projectile and applies the calculated launch force to it.
+    /// Schedules a spawn: fires OnBefore immediately, then does the real spawn after `delay` seconds.
     /// </summary>
     public void SpawnProjectile()
     {
         if (!CanSpawn) return;
 
+        cachedProjectile = CreateProjectile();
+
+        if (cachedProjectile == null) return;
+
+        OnProjectileSpawned?.Invoke(cachedProjectile);
+
+        if (cachedProjectile.SpawnDelay <= 0f)
+        {
+            ShootProjectile();
+            return;
+        }
+
+        cachedProjectile.gameObject.SetActive(false);
+        StartCoroutine(DoSpawnAfterDelay(cachedProjectile.SpawnDelay));
+    }
+
+    private IEnumerator DoSpawnAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        ShootProjectile();
+    }
+
+    /// <summary>
+    /// Spawns the projectile and applies the calculated launch force to it.
+    /// </summary>
+    public void ShootProjectile()
+    {
+        if (!CanSpawn) return;
+
         if (projectilePrefab == null || spawnPoint == null) return;
 
+        //Projectile projectile = CreateProjectile();
+
+        if (!cachedProjectile)
+        {
+            Debug.LogWarning("No projectile to spawn. Please call RequestSpawn first.");
+            return;
+        }
+
+        cachedProjectile.gameObject.SetActive(true); // Activate the projectile game object
+        // Get the Rigidbody component of the spawned projectile
+        if (cachedProjectile.TryGetComponent<Rigidbody>(out var rb))
+        {
+            // Apply force in the calculated direction
+            rb.AddForce(initialVelocity, ForceMode.Impulse);
+        }
+
+        nextSpawnTime = Time.time + cachedProjectile.Cooldown; // Set the next spawn time
+        OnProjectileShot?.Invoke(cachedProjectile);
+
+        cachedProjectile = null; // Clear the cached projectile after shooting
+    }
+
+    private Projectile CreateProjectile()
+    {
         // Instantiate the projectile at the spawn point's position and rotation
         GameObject spawnedProjectile = Instantiate(projectilePrefab, spawnPoint.position, spawnPoint.rotation);
 
         Projectile projectile = spawnedProjectile.GetComponent<Projectile>();
         projectile.SetHitPointPosition(trajectoryDrawer.HitPointPosition);
 
-        // Get the Rigidbody component of the spawned projectile
-        if (spawnedProjectile.TryGetComponent<Rigidbody>(out var rb))
-        {
-            // Apply force in the calculated direction
-            rb.AddForce(initialVelocity, ForceMode.Impulse);
-        }
-
-        nextSpawnTime = Time.time + projectile.Cooldown; // Set the next spawn time
-        OnProjectileSpawned?.Invoke(projectile);
+        return projectile;
     }
 }

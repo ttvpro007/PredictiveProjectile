@@ -96,6 +96,8 @@ public class Molotov : Projectile, IExplosive
 
     protected override void OnCollisionEnter(Collision collision)
     {
+        if (collision.gameObject.CompareTag("Ignore Collision")) return;
+
         base.OnCollisionEnter(collision);
 
         // Stop physics and disable the trail effect
