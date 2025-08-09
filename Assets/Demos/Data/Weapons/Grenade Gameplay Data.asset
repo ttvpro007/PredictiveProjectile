@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Grenade Gameplay Data
   m_EditorClassIdentifier: 
   uiGameObject: {fileID: 7580790572525183897, guid: 0560d20bc9f471243927bc928a01b500, type: 3}
-  gameplayGameObject: {fileID: 8373477092994711535, guid: f1e5b1b2343aaeb48835212caa6b5a64, type: 3}
+  weapon: {fileID: 1529911642211869300, guid: f1e5b1b2343aaeb48835212caa6b5a64, type: 3}
   spawnDelay: 0.35
   spawnPosition: {x: 0.1410002, y: -0.08800006, z: 0.009000182}
   spawnRotation: {x: 0.153, y: 89.795, z: 89.79}

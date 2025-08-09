@@ -21,7 +21,42 @@ public class PredictiveProjectileSpawner : ProjectileSpawner
     [SerializeField] private bool useFixedLaunchSpeed;
     [SerializeField] private float yOffset;
 
+    [SerializeField] private WeaponSwitcher weaponSwitcher;
+
     private Vector3 futureTargetPosition;
+
+    private void OnEnable()
+    {
+        if (weaponSwitcher != null)
+        {
+            weaponSwitcher.OnProjectileSwitched -= HandleProjectileSwitched;
+            weaponSwitcher.OnProjectileSwitched += HandleProjectileSwitched;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (weaponSwitcher != null)
+        {
+            weaponSwitcher.OnProjectileSwitched -= HandleProjectileSwitched;
+        }
+    }
+
+    private void HandleProjectileSwitched(Projectile projectile)
+    {
+        SetProjectile(projectile.gameObject);
+
+        Weapon weapon = weaponSwitcher.GetWeapon(projectile);
+
+        if (weapon == null)
+        {
+            Debug.LogWarning("Weapon is null. Cannot set spawn point.");
+            return;
+        }
+
+        spawnPoint.SetParent(weapon.ProjectileSpawnPoint);
+        spawnPoint.localPosition = Vector3.zero;
+    }
 
     protected override void CalculateLaunchParameters()
     {
@@ -218,7 +253,7 @@ public class PredictiveProjectileSpawner : ProjectileSpawner
         return target.position + targetNavMeshAgent.velocity * timeToImpact.Value;
     }
 
-    private float pollInterval = 0.5f; // Interval to check for target
+    private readonly float pollInterval = 0.5f; // Interval to check for target
     private float nextPollTime = 0f;
 
     protected override void Update()

@@ -9,10 +9,11 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
 
     public float Cooldown => cooldown;
     public GameObject UIGameObject => gameplayObjectData.UIGameObject;
-    public GameObject GameplayGameObject => gameplayObjectData.GameplayGameObject;
+    public Weapon Weapon => gameplayObjectData.Weapon;
     public float SpawnDelay => gameplayObjectData.SpawnDelay;
     public string Description => gameplayObjectData.Description;
     public string AnimationTriggerName => gameplayObjectData.AnimationTriggerName;
+    public Transform ProjectileSpawnPoint => gameplayObjectData.Weapon.ProjectileSpawnPoint;
 
     [Tooltip("The interval at which this projectile can be spawned, in seconds.")]
     [DisplayField("Cooldown", "Icons/clock_3")]
@@ -49,7 +50,7 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
 
     public GameObject SpawnGameplayObject(Transform holder)
     {
-        GameObject gameObject = Instantiate(gameplayObjectData.GameplayGameObject, holder);
+        GameObject gameObject = Instantiate(gameplayObjectData.Weapon.gameObject, holder);
 
         gameObject.transform.SetLocalPositionAndRotation(
             gameplayObjectData.SpawnPosition,
@@ -207,6 +208,6 @@ public interface IDisplayable
     }
 
     GameObject UIGameObject { get; }
-    GameObject GameplayGameObject { get; }
+    Weapon Weapon { get; }
     string Description { get; }
 }

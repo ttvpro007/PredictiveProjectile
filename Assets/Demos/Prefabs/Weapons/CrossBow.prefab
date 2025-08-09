@@ -330,6 +330,8 @@ GameObject:
   - component: {fileID: 977032929781056061}
   - component: {fileID: 977032929788259805}
   - component: {fileID: 6428001184378748952}
+  - component: {fileID: 8057189032351161402}
+  - component: {fileID: 973990499254177847}
   m_Layer: 0
   m_Name: CrossBow
   m_TagString: Untagged
@@ -354,6 +356,7 @@ Transform:
   - {fileID: 977032929781056047}
   - {fileID: 7542024837916591713}
   - {fileID: 5055258440748111971}
+  - {fileID: 6624729479294760787}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &977032929788259805
@@ -366,7 +369,7 @@ Animator:
   m_GameObject: {fileID: 977032929780833821}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 686f664ee76497240ad8a4cbb455b09b, type: 3}
-  m_Controller: {fileID: 9100000, guid: c6679b254532c174daf7d917b90fb4bf, type: 2}
+  m_Controller: {fileID: 9100000, guid: 2dda507ff928f854f9e14cadaa839707, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -392,6 +395,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   otherHandGrabPoint: {fileID: 7542024837916591713}
   otherHandElbowHint: {fileID: 5055258440748111971}
+--- !u!114 &8057189032351161402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 977032929780833821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3d2f3661a08337478ae0501a1e664e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animateOnShot: 1
+--- !u!114 &973990499254177847
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 977032929780833821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b44addd5b7b674349be8fffa8b897aaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  projectileSpawnPoint: {fileID: 6624729479294760787}
 --- !u!1 &977032929780833823
 GameObject:
   m_ObjectHideFlags: 0
@@ -547,6 +576,37 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0.5549367, y: 0.062006295, z: 0.7120345, w: 0.42568478}
   m_LocalPosition: {x: -0.2714349, y: -0.20375514, z: -0.06700052}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 977032929781056061}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8036021961744661422
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6624729479294760787}
+  m_Layer: 0
+  m_Name: ProjectileSpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6624729479294760787
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8036021961744661422}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0.753}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -159,6 +159,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8994552658746354858}
   - component: {fileID: 6491000036087263272}
+  - component: {fileID: -7523061551526678285}
   m_Layer: 0
   m_Name: Molotov
   m_TagString: Untagged
@@ -182,6 +183,7 @@ Transform:
   - {fileID: 5919918234526012825}
   - {fileID: 460110938761618}
   - {fileID: 6381335535107824604}
+  - {fileID: 7316653914394001216}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6491000036087263272
@@ -198,6 +200,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   otherHandGrabPoint: {fileID: 0}
   otherHandElbowHint: {fileID: 0}
+--- !u!114 &-7523061551526678285
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3625002997459114711}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b44addd5b7b674349be8fffa8b897aaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  projectileSpawnPoint: {fileID: 7316653914394001216}
 --- !u!1 &4342598224916070301
 GameObject:
   m_ObjectHideFlags: 0
@@ -224,6 +239,37 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8994552658746354858}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6157798160320068744
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7316653914394001216}
+  m_Layer: 0
+  m_Name: ProjectileSpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7316653914394001216
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6157798160320068744}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.012116499, y: 0.04880771, z: -0.0000000037252903}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

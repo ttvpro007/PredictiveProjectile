@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Crossbow Gameplay Data
   m_EditorClassIdentifier: 
   uiGameObject: {fileID: 6415607788586168496, guid: 234c0234fa1ddda4995fe91ea8dcdf58, type: 3}
-  gameplayGameObject: {fileID: 977032929780833821, guid: 39b84f150a998354dba3c4c3e0bbc1ed, type: 3}
+  weapon: {fileID: 973990499254177847, guid: 39b84f150a998354dba3c4c3e0bbc1ed, type: 3}
   spawnDelay: 0.3
   spawnPosition: {x: 0.1090001, y: -0.02600002, z: 0.1420003}
   spawnRotation: {x: 0.153, y: 89.795, z: 89.79}

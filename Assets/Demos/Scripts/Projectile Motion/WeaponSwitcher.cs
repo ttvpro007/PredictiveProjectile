@@ -1,4 +1,5 @@
 using Sirenix.Utilities;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
@@ -8,38 +9,59 @@ public class WeaponSwitcher : MonoBehaviour
     [SerializeField] private Rig animRig;
     [SerializeField] private CharacterGrabGunIK characterGrabGunIK;
     [SerializeField] private Transform weaponHolder;
-    [SerializeField] private UIDisplayer UIDisplayer;
-    [SerializeField] private List<GameObject> ProjectilePrefabs;
+    [SerializeField] private UIDisplayer uiDisplayer;
+    [SerializeField] private List<GameObject> projectilePrefabs;
 
-    private PredictiveProjectileSpawner thrower;
-    private readonly Dictionary<Projectile, GameObject> RuntimeWeaponGameObject = new();
+    public event Action<Projectile> OnProjectileSwitched;
 
+    private readonly Dictionary<Projectile, GameObject> runtimeWeaponGameObject = new();
+    public IReadOnlyDictionary<Projectile, GameObject> RuntimeWeaponGameObjects => runtimeWeaponGameObject;
+
+    private MultiAimConstraint aimIKConstraint;
     private TwoBoneIKConstraint leftArmIKConstraint;
+    private DampedTransform dampedHandAimSpine3IKConstraint;
 
     private void Awake()
     {
-        thrower = GetComponent<PredictiveProjectileSpawner>();
+        aimIKConstraint = animRig.GetRigConstraint<MultiAimConstraint>("Aim");
         leftArmIKConstraint = animRig.GetRigConstraint<TwoBoneIKConstraint>("LeftArmIK");
+        dampedHandAimSpine3IKConstraint = animRig.GetRigConstraint<DampedTransform>("DampedHandAimSpine3");
+    }
+
+    private void OnEnable()
+    {
+        OnProjectileSwitched -= HandleProjectileSwitched;
+        OnProjectileSwitched += HandleProjectileSwitched;
+    }
+
+    private void OnDisable()
+    {
+        OnProjectileSwitched -= HandleProjectileSwitched;
+    }
+
+    private void HandleProjectileSwitched(Projectile projectile)
+    {
+        UpdateDisplayForProjectile(projectile);
     }
 
     // Start is called before the first frame update
     void Start()
     {
         // Iterate over each projectile in the list
-        for (int i = 0; i < ProjectilePrefabs.Count; i++)
+        for (int i = 0; i < projectilePrefabs.Count; i++)
         {
-            if (ProjectilePrefabs[i].TryGetComponent<Projectile>(out var projectile))
+            if (projectilePrefabs[i].TryGetComponent<Projectile>(out var projectile))
             {
                 //Store the runtime game objects in the dictionary for easy access
                 var runtimeGameplayGameObject = projectile.SpawnGameplayObject(weaponHolder);
                 runtimeGameplayGameObject.SetActive(false);
-                RuntimeWeaponGameObject[projectile] = runtimeGameplayGameObject;
+                runtimeWeaponGameObject[projectile] = runtimeGameplayGameObject;
             }
         }
 
-        UIDisplayer.Init(ProjectilePrefabs);
+        uiDisplayer.Init(projectilePrefabs);
 
-        if (!ProjectilePrefabs.IsNullOrEmpty())
+        if (!projectilePrefabs.IsNullOrEmpty())
             SwitchTo(0);
     }
 
@@ -59,25 +81,51 @@ public class WeaponSwitcher : MonoBehaviour
         }
     }
 
-    private void SwitchTo<T>(T projectile) where T : Projectile
+    private void SetIKConstraintWeight(float weight)
     {
-        if (!RuntimeWeaponGameObject.ContainsKey(projectile)) return;
+        weight = Mathf.Clamp01(weight);
 
-        TurnOffAllGameplayGameObject();
-        GameObject runtimeGO = RuntimeWeaponGameObject[projectile];
-        runtimeGO.SetActive(true);
+        if (aimIKConstraint != null)
+        {
+            aimIKConstraint.weight = weight;
+        }
+        else
+        {
+            Debug.LogWarning("Aim IK Constraint is not set in the Rig.");
+        }
 
-        if (!leftArmIKConstraint)
+        if (leftArmIKConstraint != null)
+        {
+            leftArmIKConstraint.weight = weight;
+        }
+        else
         {
             Debug.LogWarning("Left Arm IK Constraint is not set in the Rig.");
-            return;
         }
+
+        if (dampedHandAimSpine3IKConstraint != null)
+        {
+            dampedHandAimSpine3IKConstraint.weight = weight;
+        }
+        else
+        {
+            Debug.LogWarning("Damped Hand Aim Spine3 IK Constraint is not set in the Rig.");
+        }
+    }
+
+    private void SwitchTo<T>(T projectile) where T : Projectile
+    {
+        if (!runtimeWeaponGameObject.ContainsKey(projectile)) return;
+
+        TurnOffAllGameplayGameObject();
+        GameObject runtimeGO = runtimeWeaponGameObject[projectile];
+        runtimeGO.SetActive(true);
 
         if (runtimeGO.TryGetComponent<GunHolderIK>(out var gunHolderIK))
         {
             if (gunHolderIK.GrabPoint != null && gunHolderIK.ElbowHint != null)
             {
-                leftArmIKConstraint.weight = 1;
+                SetIKConstraintWeight(1f);
 
                 // TODO Set the IK target for the ik constraint
                 characterGrabGunIK.SetPositionAndRotation(
@@ -86,14 +134,14 @@ public class WeaponSwitcher : MonoBehaviour
             }
             else
             {
-                leftArmIKConstraint.weight = 0;
+                SetIKConstraintWeight(0f);
             }
         }
     }
 
     private void TurnOffAllGameplayGameObject()
     {
-        foreach (var go in RuntimeWeaponGameObject.Values)
+        foreach (var go in runtimeWeaponGameObject.Values)
         {
             go.SetActive(false);
         }
@@ -101,21 +149,32 @@ public class WeaponSwitcher : MonoBehaviour
 
     public void SwitchTo(int index)
     {
-        if (index < 0 || index >= ProjectilePrefabs.Count)
+        if (index < 0 || index >= projectilePrefabs.Count)
         {
             Debug.LogWarning("Index out of range for ProjectilePrefabs.");
             return;
         }
 
-        var projectilePrefab = ProjectilePrefabs[index];
+        var projectilePrefab = projectilePrefabs[index];
 
         if (projectilePrefab.TryGetComponent(out Projectile projectile)
-            && RuntimeWeaponGameObject.ContainsKey(projectile))
+            && runtimeWeaponGameObject.ContainsKey(projectile))
         {
-            thrower.SetProjectile(projectilePrefab);
-            UpdateDisplayForProjectile(projectile);
-            UIDisplayer.UpdateDisplayForProjectile(projectile);
+            OnProjectileSwitched?.Invoke(projectile);
+
+            //thrower.SetProjectile(projectilePrefab);
+            //UpdateDisplayForProjectile(projectile);
+            //uiDisplayer.UpdateDisplayForProjectile(projectile);
         }
+    }
+
+    public Weapon GetWeapon(Projectile projectile)
+    {
+        if (runtimeWeaponGameObject.TryGetValue(projectile, out var weaponGO))
+        {
+            return weaponGO.GetComponent<Weapon>();
+        }
+        return null;
     }
 }
 

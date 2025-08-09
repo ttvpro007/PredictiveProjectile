@@ -11,12 +11,35 @@ public class UIDisplayer : MonoBehaviour
     [SerializeField] private RectTransform ObjectHolderTransform;
     [SerializeField] private TMP_Text DescriptionTextField;
     [SerializeField] private GameObject StatRow;
+    [SerializeField] private WeaponSwitcher weaponSwitcher;
 
     public List<GameObject> StatRows = new();
 
     private List<GameObject> projectilePrefabs = new();
     private readonly Dictionary<Projectile, List<Displayable>> projectileDisplayFields = new();
     private readonly Dictionary<Projectile, GameObject> runtimeUIGameObjects = new();
+
+    private void OnEnable()
+    {
+        if (weaponSwitcher != null)
+        {
+            weaponSwitcher.OnProjectileSwitched -= HandleProjectileSwitched;
+            weaponSwitcher.OnProjectileSwitched += HandleProjectileSwitched;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (weaponSwitcher != null)
+        {
+            weaponSwitcher.OnProjectileSwitched -= HandleProjectileSwitched;
+        }
+    }
+
+    private void HandleProjectileSwitched(Projectile projectile)
+    {
+        UpdateDisplayForProjectile(projectile);
+    }
 
     private void UpdateProjectileDisplayFields(Projectile projectile)
     {

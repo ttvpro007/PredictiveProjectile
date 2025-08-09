@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Molotov Gameplay Data
   m_EditorClassIdentifier: 
   uiGameObject: {fileID: 8575328533598524023, guid: a1308c09f7d62894dab66c213748416a, type: 3}
-  gameplayGameObject: {fileID: 3625002997459114711, guid: 83ae4146f96563041b56f44f0414701a, type: 3}
+  weapon: {fileID: -7523061551526678285, guid: 83ae4146f96563041b56f44f0414701a, type: 3}
   spawnDelay: 0.35
   spawnPosition: {x: 0.1190307, y: -0.06085981, z: 0.02204551}
   spawnRotation: {x: -11.172, y: 99.634, z: 84.124}

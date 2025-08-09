@@ -7800,6 +7800,7 @@ MonoBehaviour:
   ObjectHolderTransform: {fileID: 1294822728}
   DescriptionTextField: {fileID: 154732784}
   StatRow: {fileID: 4801499006237658865, guid: 9f900408734341d4a90518b5e36703b7, type: 3}
+  weaponSwitcher: {fileID: 1632277125}
   StatRows: []
 --- !u!1 &1822775905
 GameObject:
@@ -9136,6 +9137,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3763716685594240865, guid: a34310255a702624abf465c35ce1324e, type: 3}
       propertyPath: UIDisplayer
+      value: 
+      objectReference: {fileID: 1801760254}
+    - target: {fileID: 3763716685594240865, guid: a34310255a702624abf465c35ce1324e, type: 3}
+      propertyPath: uiDisplayer
       value: 
       objectReference: {fileID: 1801760254}
     - target: {fileID: 4152008799822008997, guid: a34310255a702624abf465c35ce1324e, type: 3}
