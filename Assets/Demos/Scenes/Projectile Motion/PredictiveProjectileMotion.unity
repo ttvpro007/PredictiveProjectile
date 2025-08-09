@@ -4966,8 +4966,8 @@ MonoBehaviour:
       type: {class: RandomInBoundary3DLocationProvider, ns: VT.Gameplay.Spawners, asm: VT.Gameplay.Spawners}
       data:
         Boundary:
-          min: {x: -10, y: 10, z: -10}
-          max: {x: 10, y: 15, z: 10}
+          min: {x: -10, y: 15, z: -10}
+          max: {x: 10, y: 20, z: 10}
     - rid: 8264611808944849096
       type: {class: SequentialPrefabProvider, ns: VT.Gameplay.Spawners, asm: VT.Gameplay.Spawners}
       data:
@@ -10168,7 +10168,7 @@ GameObject:
   - component: {fileID: 2464519429009671862}
   - component: {fileID: 7079858780669072229}
   m_Layer: 9
-  m_Name: Project Name (1)
+  m_Name: Model
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

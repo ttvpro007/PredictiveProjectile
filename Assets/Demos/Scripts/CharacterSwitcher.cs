@@ -38,6 +38,14 @@ public class CharacterSwitcher : MonoBehaviour
         currentCharacterIndex = newIndex;
     }
 
+    public void SwitchRandomCharacter()
+    {
+        if (characters.Count == 0)
+            return;
+
+        SwitchCharacter(Random.Range(0, characters.Count));
+    }
+
     [Button, Tooltip("Disable all characters in the list.")]
     private void DisableAllCharacters()
     {
@@ -45,12 +53,16 @@ public class CharacterSwitcher : MonoBehaviour
             SetCharacterActive(i, false);
     }
 
+    private void Start()
+    {
+        SetCharacterActive(currentCharacterIndex, true);
+    }
+
     private void OnEnable()
     {
         // Ensure valid starting index
         currentCharacterIndex = Mathf.Clamp(startingCharacterIndex, 0, characters.Count - 1);
         DisableAllCharacters();
-        SetCharacterActive(currentCharacterIndex, true);
     }
 
     /// <summary>

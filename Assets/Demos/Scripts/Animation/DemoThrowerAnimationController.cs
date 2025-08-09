@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Animator))]
-public class DemoAnimationController : MonoBehaviour
+public class DemoThrowerAnimationController : MonoBehaviour
 {
     [Tooltip("If true, the animation will be triggered when the projectile is shot. If false, it will be triggered when the projectile is spawned.")]
     [SerializeField] private bool animateOnShot = true;

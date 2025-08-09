@@ -8,35 +8,80 @@ using UnityEngine.AI;
 public class Running : MonoBehaviour
 {
     [Header("Running Settings")]
-    [Tooltip("Boolean that determines whether the object is currently running.")]
-    [SerializeField] private bool run;
+    [Tooltip("Enable/disable autonomous running.")]
+    [SerializeField] private bool run = true;
 
-    [Tooltip("Speed of the object when running, controlled by the NavMeshAgent.")]
+    [Tooltip("Speed of the object when running, applied to NavMeshAgent.speed.")]
     [SerializeField] private FloatVariable speed;
 
-    [Tooltip("Radius around the map center where the object will randomly pick new destinations.")]
+    [Tooltip("Radius around the map center to pick new destinations.")]
     [SerializeField] private float radius = 10f;
 
-    [Tooltip("Distance tolerance to the destination. If the object is within this distance, it will pick a new destination.")]
+    [Tooltip("Arrival tolerance (meters).")]
     [SerializeField] private float destinationTolerance = 2f;
 
+    [Header("Grounding")]
+    [Tooltip("Layers considered ground.")]
+    [SerializeField] private LayerMask groundMask = ~0;
+
+    [Tooltip("Frames required to confirm grounded.")]
+    [SerializeField] private int groundedFrameThreshold = 2;
+
+    [Tooltip("Frames required to confirm airborne.")]
+    [SerializeField] private int airborneFrameThreshold = 2;
+
+
+    [Header("Injection")]
+    [SerializeReference] private IGroundChecker groundChecker = new SphereRayGroundChecker();
+    [SerializeReference] private IGroundDebugDrawer groundDebugDrawer = new GizmosGroundDebugDrawer();
+
+    // Components
+    private Rigidbody rb;
     private NavMeshAgent agent;
-    private Transform mapCenter;
+    private Transform mapCenter;    // GameObject tagged "MapCenter"
+    private Collider myCol;
+
+    // State
+    private bool wasGrounded;
+    private int groundedFrames;
+    private int airborneFrames;
+    private GroundCheckResult lastGround;
+
+    // Events
+    public event Action<bool> OnGroundedChanged;
+    public event Action<Vector3> OnDestinationChanged;
+    public event Action<float> OnSpeedChanged
+    {
+        add
+        {
+            if (speed != null)
+                value?.Invoke(speed.Value);
+            speed.OnValueChanged += value;
+        }
+        remove
+        {
+            speed.OnValueChanged -= value;
+        }
+    }
+
+    // Public read-only state
     public Vector3 CurrentDestination { get; private set; }
     public Vector3 CurrentVelocity { get; private set; }
-    public event Action<Vector3> OnDestinationChanged;
-    private Rigidbody rb;
+    public FloatVariable Speed => speed;
 
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
-        if (agent == null)
+        rb = GetComponent<Rigidbody>();
+        myCol = GetComponent<Collider>();
+
+        if (!agent)
         {
-            Debug.LogError("NavMeshAgent component missing from this GameObject.");
+            Debug.LogError("[Running] NavMeshAgent is required.");
             enabled = false;
             return;
         }
-        rb = GetComponent<Rigidbody>();
+
         mapCenter = GameObject.FindGameObjectWithTag("MapCenter")?.transform;
     }
 
@@ -44,102 +89,178 @@ public class Running : MonoBehaviour
     {
         if (mapCenter == null)
         {
-            Debug.LogError("Map Center not found. Make sure there's a GameObject tagged 'MapCenter'.");
+            Debug.LogError("[Running] Map Center not found. Add a GameObject tagged 'MapCenter'.");
             enabled = false;
             return;
         }
 
-        // If not grounded, let physics drop the object before starting nav movement
-        StartCoroutine(InitializeMovement());
+        // Initial ground probe
+        lastGround = groundChecker?.Check(transform, myCol, groundMask) ?? default;
+        wasGrounded = lastGround.grounded;
+        groundedFrames = airborneFrames = 0;
+
+        // Start in nav state (we'll disable on airborne)
+        rb.isKinematic = false;
+        agent.enabled = false;
+        //agent.Warp(transform.position); // sync agent's internal nav position
+
+        // Announce initial state
+        OnGroundedChanged?.Invoke(wasGrounded);
+
+        if (run)
+            SetDestination();
     }
 
     private void OnDisable()
     {
         StopAllCoroutines();
-        agent.enabled = false;
-        rb.isKinematic = false;
+
+        if (agent)
+        {
+            agent.ResetPath();
+            agent.enabled = false;
+        }
+
+        if (rb) rb.isKinematic = false;
+
         CurrentDestination = Vector3.zero;
         CurrentVelocity = Vector3.zero;
-        OnDestinationChanged = _ => { };
     }
 
     private void Update()
     {
-        if (!run || !agent.enabled)
-        {
-            Debug.Log($"run={run}, agent.enabled={agent.enabled}");
-            return;
-        }
+        if (!run || !agent.enabled) return;
 
-        agent.speed = speed.Value;
+        agent.speed = speed ? speed.Value : agent.speed;
         CurrentVelocity = agent.velocity;
 
-        if ((transform.position - CurrentDestination).sqrMagnitude <= destinationTolerance * destinationTolerance)
+        // Robust arrival condition
+        if (!agent.pathPending &&
+            agent.remainingDistance <= destinationTolerance &&
+            (!agent.hasPath || agent.velocity.sqrMagnitude < 0.001f))
         {
-            Debug.Log("Arrived – setting new destination");
             SetDestination();
         }
     }
 
-    private IEnumerator InitializeMovement()
+    private void FixedUpdate()
     {
-        yield return new WaitForFixedUpdate(); // Wait for physics to stabilize
+        // Probe ground via injected checker
+        lastGround = groundChecker?.Check(transform, myCol, groundMask) ?? default;
+        bool grounded = lastGround.grounded;
 
-        // If not grounded, disable agent and kinematic to let gravity apply
-        if (!IsGrounded())
+        if (grounded)
         {
-            agent.enabled = false;
-            rb.isKinematic = false;
+            airborneFrames = 0;
+            groundedFrames++;
 
-            // Wait until object hits the ground
-            while (!IsGrounded())
-                yield return null;
+            if (!wasGrounded && groundedFrames >= Mathf.Max(1, groundedFrameThreshold))
+            {
+                // Became grounded
+                wasGrounded = true;
+                OnGroundedChanged?.Invoke(true);
 
-            // Once grounded, restore kinematic and enable the agent
-            rb.isKinematic = true;
-            agent.enabled = true;
+                Debug.Log($"[Running] Grounded at {transform.position} after {groundedFrames} frames.");
+
+                rb.isKinematic = true;
+                // Warp BEFORE enabling to keep agent in sync with current pose
+                if (!agent.enabled) agent.Warp(transform.position);
+                agent.enabled = true;
+
+                if (run && (!agent.hasPath || agent.remainingDistance <= destinationTolerance))
+                    SetDestination();
+            }
         }
+        else
+        {
+            groundedFrames = 0;
+            airborneFrames++;
 
-        Debug.Log("Grounded – starting running");
+            if (wasGrounded && airborneFrames >= Mathf.Max(1, airborneFrameThreshold))
+            {
+                // Left ground
+                wasGrounded = false;
+                OnGroundedChanged?.Invoke(false);
 
-        // Start running
-        SetDestination();
-    }
+                Debug.Log($"[Running] Airborne at {transform.position} after {airborneFrames} frames.");
 
-    private bool IsGrounded()
-    {
-        return Physics.Raycast(transform.position, Vector3.down, 1.1f);
+                if (agent.enabled)
+                {
+                    agent.ResetPath();
+                    agent.enabled = false;
+                }
+                rb.isKinematic = false;
+            }
+        }
     }
 
     private void SetDestination()
     {
-        CurrentDestination = GenerateRandomPosition();
-        agent.SetDestination(CurrentDestination);
-        OnDestinationChanged?.Invoke(CurrentDestination);
-    }
+        if (!agent.enabled) return;
 
-    private Vector3 GenerateRandomPosition()
-    {
-        Vector2 rand = UnityEngine.Random.insideUnitCircle * radius;
-        Vector3 pos = new Vector3(rand.x, 0, rand.y);
-        return mapCenter.position + pos;
+        // Try a handful of random points; snap to NavMesh
+        for (int i = 0; i < 8; i++)
+        {
+            Vector2 rand = UnityEngine.Random.insideUnitCircle * radius;
+            Vector3 candidate = mapCenter.position + new Vector3(rand.x, 0f, rand.y);
+
+            if (NavMesh.SamplePosition(candidate, out var hit, radius, NavMesh.AllAreas))
+            {
+                CurrentDestination = hit.position;
+                agent.SetDestination(CurrentDestination);
+                OnDestinationChanged?.Invoke(CurrentDestination);
+                return;
+            }
+        }
+
+        // Fallback: hold position
+        CurrentDestination = transform.position;
+        agent.ResetPath();
     }
 
     public void AddExplosionForce(float force, Vector3 origin, float radius)
     {
-        if (agent == null || rb == null) return;
-        agent.enabled = false;
+        if (!rb) return;
+
+        if (agent && agent.enabled)
+        {
+            agent.ResetPath();
+            agent.enabled = false;
+        }
+
         rb.isKinematic = false;
         rb.AddExplosionForce(force, origin, radius);
+
         StartCoroutine(EnableAgentWhenGrounded());
     }
 
     private IEnumerator EnableAgentWhenGrounded()
     {
-        yield return new WaitForSeconds(1f);
-        while (!IsGrounded())
-            yield return null;
+        // Let physics tick first
+        yield return new WaitForFixedUpdate();
+
+        int need = Mathf.Max(1, groundedFrameThreshold);
+        int count = 0;
+
+        while (count < need)
+        {
+            var res = groundChecker?.Check(transform, myCol, groundMask) ?? default;
+            if (res.grounded) count++; else count = 0;
+            yield return new WaitForFixedUpdate();
+        }
+
         rb.isKinematic = true;
+
+        // Always warp before enabling to sync nav internal position
+        agent.Warp(transform.position);
         agent.enabled = true;
+
+        if (run) SetDestination();
+    }
+
+    private void OnDrawGizmos()
+    {
+        // Draw last probe (works in Edit/Play; during Edit, lastGround will be default until first probe)
+        groundDebugDrawer?.Draw(lastGround);
     }
 }
