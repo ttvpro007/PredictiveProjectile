@@ -1,32 +1,43 @@
+using Obvious.Soap.Example;
 using UnityEngine;
 
 [RequireComponent(typeof(Animator))]
 public class DemoRunnerAnimationController : MonoBehaviour
 {
-    [SerializeField] private GameObject runnerRuntimeGameObject;
-
     private Animator animator;
     private Running runner;
+    private Health health;
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
-        runner = runnerRuntimeGameObject.GetComponent<Running>();
+        runner = GetComponentInParent<Running>();
+        health = GetComponentInParent<Health>();
     }
 
     private void OnEnable()
     {
         if (runner != null)
         {
-            runner.OnSpeedChanged -= HandleSpeedChanged;
-            runner.OnSpeedChanged += HandleSpeedChanged;
-            runner.OnGroundedChanged -= HandleGroundedChanged;
-            runner.OnGroundedChanged += HandleGroundedChanged;
+            runner.OnSpeedChanged -= HandleOnSpeedChanged;
+            runner.OnSpeedChanged += HandleOnSpeedChanged;
+            runner.OnGroundedChanged -= HandleOnGroundedChanged;
+            runner.OnGroundedChanged += HandleOnGroundedChanged;
+            runner.OnStunned -= HandleOnStunned;
+            runner.OnStunned += HandleOnStunned;
         }
 
         if (runner != null)
         {
-            HandleSpeedChanged(runner.Speed.Value);
+            HandleOnSpeedChanged(runner.Speed.Value);
+        }
+
+        if (health != null)
+        {
+            health.OnDamaged -= HandleOnDamaged;
+            health.OnDamaged += HandleOnDamaged;
+            health.OnCriticalDamaged -= HandleOnDamaged;
+            health.OnCriticalDamaged += HandleOnDamaged;
         }
     }
 
@@ -34,22 +45,45 @@ public class DemoRunnerAnimationController : MonoBehaviour
     {
         if (runner != null)
         {
-            runner.Speed.OnValueChanged -= HandleSpeedChanged;
-            runner.OnGroundedChanged -= HandleGroundedChanged;
+            runner.OnSpeedChanged -= HandleOnSpeedChanged;
+            runner.OnGroundedChanged -= HandleOnGroundedChanged;
+            runner.OnStunned -= HandleOnStunned;
+        }
+
+        if (health != null)
+        {
+            health.OnDamaged -= HandleOnDamaged;
+            health.OnCriticalDamaged -= HandleOnDamaged;
         }
     }
 
-    private void HandleSpeedChanged(float speed)
+    private void HandleOnStunned(bool isStunned)
     {
-        if (runnerRuntimeGameObject && animator)
+        if (animator)
+        {
+            animator.SetBool("IsStunned", isStunned);
+        }
+    }
+
+    private void HandleOnDamaged(int obj)
+    {
+        if (animator)
+        {
+            animator.SetTrigger("Damaged");
+        }
+    }
+
+    private void HandleOnSpeedChanged(float speed)
+    {
+        if (animator)
         {
             animator.SetFloat("SpeedNormalized", speed / runner.Speed.Max);
         }
     }
 
-    private void HandleGroundedChanged(bool isGrounded)
+    private void HandleOnGroundedChanged(bool isGrounded)
     {
-        if (runnerRuntimeGameObject && animator)
+        if (animator)
         {
             animator.SetBool("IsGrounded", isGrounded);
         }

@@ -1,4 +1,5 @@
 ﻿using Obvious.Soap;
+using Obvious.Soap.Example;
 using System;
 using System.Collections;
 using UnityEngine;
@@ -39,13 +40,17 @@ public class Running : MonoBehaviour
     private Rigidbody rb;
     private NavMeshAgent agent;
     private Transform mapCenter;    // GameObject tagged "MapCenter"
-    private Collider myCol;
+    private Collider col;
+    private Health health;
 
     // State
     private bool wasGrounded;
     private int groundedFrames;
     private int airborneFrames;
     private GroundCheckResult lastGround;
+
+    // Coroutine for stun handling
+    private Coroutine stunCoroutine;
 
     // Events
     public event Action<bool> OnGroundedChanged;
@@ -63,6 +68,7 @@ public class Running : MonoBehaviour
             speed.OnValueChanged -= value;
         }
     }
+    public event Action<bool> OnStunned;
 
     // Public read-only state
     public Vector3 CurrentDestination { get; private set; }
@@ -73,7 +79,8 @@ public class Running : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         rb = GetComponent<Rigidbody>();
-        myCol = GetComponent<Collider>();
+        col = GetComponent<Collider>();
+        health = GetComponent<Health>();
 
         if (!agent)
         {
@@ -94,15 +101,17 @@ public class Running : MonoBehaviour
             return;
         }
 
+        RegisterEvents();
+
         // Initial ground probe
-        lastGround = groundChecker?.Check(transform, myCol, groundMask) ?? default;
+        lastGround = groundChecker?.Check(transform, col, groundMask) ?? default;
         wasGrounded = lastGround.grounded;
         groundedFrames = airborneFrames = 0;
 
         // Start in nav state (we'll disable on airborne)
         rb.isKinematic = false;
         agent.enabled = false;
-        //agent.Warp(transform.position); // sync agent's internal nav position
+        agent.speed = speed.Value;
 
         // Announce initial state
         OnGroundedChanged?.Invoke(wasGrounded);
@@ -114,6 +123,8 @@ public class Running : MonoBehaviour
     private void OnDisable()
     {
         StopAllCoroutines();
+
+        UnregisterEvents();
 
         if (agent)
         {
@@ -131,7 +142,6 @@ public class Running : MonoBehaviour
     {
         if (!run || !agent.enabled) return;
 
-        agent.speed = speed ? speed.Value : agent.speed;
         CurrentVelocity = agent.velocity;
 
         // Robust arrival condition
@@ -146,7 +156,7 @@ public class Running : MonoBehaviour
     private void FixedUpdate()
     {
         // Probe ground via injected checker
-        lastGround = groundChecker?.Check(transform, myCol, groundMask) ?? default;
+        lastGround = groundChecker?.Check(transform, col, groundMask) ?? default;
         bool grounded = lastGround.grounded;
 
         if (grounded)
@@ -191,6 +201,37 @@ public class Running : MonoBehaviour
                 }
                 rb.isKinematic = false;
             }
+        }
+    }
+
+    private void RegisterEvents()
+    {
+        if (health != null)
+        {
+            health.OnDamaged -= HandleOnDamaged;
+            health.OnDamaged += HandleOnDamaged;
+            health.OnCriticalDamaged -= HandleOnDamaged;
+            health.OnCriticalDamaged += HandleOnDamaged;
+        }
+
+        if (speed != null)
+        {
+            speed.OnValueChanged -= HandleSpeedChanged;
+            speed.OnValueChanged += HandleSpeedChanged;
+        }
+    }
+
+    private void UnregisterEvents()
+    {
+        if (health != null)
+        {
+            health.OnDamaged -= HandleOnDamaged;
+            health.OnCriticalDamaged -= HandleOnDamaged;
+        }
+
+        if (speed != null)
+        {
+            speed.OnValueChanged -= HandleSpeedChanged;
         }
     }
 
@@ -244,7 +285,7 @@ public class Running : MonoBehaviour
 
         while (count < need)
         {
-            var res = groundChecker?.Check(transform, myCol, groundMask) ?? default;
+            var res = groundChecker?.Check(transform, col, groundMask) ?? default;
             if (res.grounded) count++; else count = 0;
             yield return new WaitForFixedUpdate();
         }
@@ -256,6 +297,43 @@ public class Running : MonoBehaviour
         agent.enabled = true;
 
         if (run) SetDestination();
+    }
+
+    private void HandleOnDamaged(int damage)
+    {
+        // Stun for a short duration when damaged
+        Stun(2f);
+    }
+
+    private void HandleSpeedChanged(float speed)
+    {
+        if (agent)
+        {
+            agent.speed = speed;
+        }
+    }
+
+    private void Stun(float duration)
+    {
+        if (stunCoroutine != null)
+            StopCoroutine(stunCoroutine);
+
+        stunCoroutine = StartCoroutine(StunCoroutine(duration));
+    }
+
+    private IEnumerator StunCoroutine(float duration)
+    {
+        Debug.Log("[Running] Stunned due to damage.");
+        OnStunned?.Invoke(true);
+        float endTime = Time.time + duration;
+        agent.speed = 0f; // Stop movement
+
+        while (Time.time < endTime)
+            yield return null;
+
+        agent.speed = speed.Value;
+        OnStunned?.Invoke(false);
+        Debug.Log("[Running] Stun ended.");
     }
 
     private void OnDrawGizmos()
