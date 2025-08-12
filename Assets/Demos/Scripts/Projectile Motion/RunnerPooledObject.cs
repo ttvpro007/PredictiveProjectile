@@ -6,12 +6,12 @@ using VT.Patterns.ObjectPoolPattern;
 public class RunnerPooledObject : PooledObject
 {
     private Health _health;
-    private CameraController _cameraController;
+    //private CameraController _cameraController;
 
     private void Awake()
     {
         _health = GetComponent<Health>();
-        _cameraController = Camera.main.GetComponent<CameraController>();
+        //_cameraController = Camera.main.GetComponent<CameraController>();
     }
 
     public override void OnSpawned()
@@ -19,8 +19,10 @@ public class RunnerPooledObject : PooledObject
         base.OnSpawned();
 
         _health.ResetHealth();
+
+        _health.OnDeath -= ReturnToPool;
         _health.OnDeath += ReturnToPool;
-        _cameraController?.AddPointToTrack(transform);
+        //_cameraController?.AddPointToTrack(transform);
     }
 
     public override void OnReturned()
@@ -28,6 +30,6 @@ public class RunnerPooledObject : PooledObject
         base.OnReturned();
 
         _health.OnDeath -= ReturnToPool;
-        _cameraController?.RemovePointToTrack(transform);
+        //_cameraController?.RemovePointToTrack(transform);
     }
 }

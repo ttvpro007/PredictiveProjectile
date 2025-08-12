@@ -1,29 +1,57 @@
-using Obvious.Soap;
+﻿using Obvious.Soap;
 using Obvious.Soap.Example;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class PredictiveProjectileSpawner : ProjectileSpawner
 {
+    #region ===== Config: Targeting & Ballistics =====
     [Header("Predictive Target Settings")]
     [Tooltip("The target the projectile is aimed at.")]
     [SerializeField] private Transform target;
 
-    [Tooltip("The Rigidbody of the target to predict future movement.")]
+    [Tooltip("The NavMeshAgent of the target to read velocity from.")]
     [SerializeField] private NavMeshAgent targetNavMeshAgent;
 
-    [Tooltip("Time to impact for predicting the future position of the target.")]
+    [Tooltip("Time to impact used to predict the target's future position.")]
     [SerializeField] private FloatVariable timeToImpact;
 
-    [Tooltip("Fixed launch speed of the projectile.")]
+    [Tooltip("Fixed launch speed of the projectile (used when 'useFixedLaunchSpeed' is true).")]
     [SerializeField] private FloatVariable fixedLaunchSpeed;
 
-    [SerializeField] private bool useFixedLaunchSpeed;
-    [SerializeField] private float yOffset;
+    [Tooltip("If true, use a fixed launch speed and solve for angle; otherwise use time-to-impact.")]
+    [SerializeField] private bool useFixedLaunchSpeed = false;
 
+    [Tooltip("Vertical offset added to the predicted target position.")]
+    [SerializeField] private float yOffset = 0f;
+    #endregion
+
+    [SerializeReference] private TargetProvider targetProvider;
+
+    #region ===== Dependencies =====
     [SerializeField] private WeaponSwitcher weaponSwitcher;
+    private CameraController cameraController;
+    #endregion
 
+    #region ===== Tuning =====
+    [SerializeField, Tooltip("How often to poll for a target if none is assigned.")]
+    private float pollInterval = 0.5f;
+    private float nextPollTime = 0f;
+    #endregion
+
+    #region ===== State =====
     private Vector3 futureTargetPosition;
+    #endregion
+
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    #region ===== Unity Lifecycle =====
+    private void Awake()
+    {
+        Camera mainCam = Camera.main;
+        cameraController = mainCam ? mainCam.GetComponent<CameraController>() : null;
+    }
 
     private void OnEnable()
     {
@@ -42,15 +70,180 @@ public class PredictiveProjectileSpawner : ProjectileSpawner
         }
     }
 
+    protected override void Update()
+    {
+        base.Update();
+
+        // Lazy acquire a target if none assigned
+        if (target == null && Time.time >= nextPollTime)
+        {
+            FindTarget();
+            nextPollTime = Time.time + pollInterval;
+        }
+    }
+    #endregion
+
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    #region ===== Overrides =====
+    protected override void CalculateLaunchParameters()
+    {
+        if (useFixedLaunchSpeed)
+            CalculateLaunchParametersByLaunchSpeed();
+        else
+            CalculateLaunchParametersByTimeToImpact();
+    }
+    #endregion
+
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    #region ===== Public / External API =====
+    #endregion
+
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    #region ===== Helpers: Prediction & Ballistics =====
+    private float GetTimeToImpact()
+    {
+        return currentProjectile ? timeToImpact.Value + currentProjectile.SpawnDelay : timeToImpact.Value;
+    }
+
+    /// <summary> Predicts future target position = current position + velocity * T. </summary>
+    private Vector3 PredictFuturePosition()
+    {
+        if (!target || !targetNavMeshAgent)
+            return Vector3.zero;
+
+        return target.position + targetNavMeshAgent.velocity * GetTimeToImpact();
+    }
+
+    /// <summary>
+    /// Calculate initial velocity using a known time-to-impact.
+    /// Solves v0x and v0y from kinematics to reach predicted position at time T.
+    /// </summary>
+    private void CalculateLaunchParametersByTimeToImpact()
+    {
+        if (!target || !targetNavMeshAgent)
+        {
+            // Fallback if we have no target info
+            SetInitialVelocity(transform.forward * 20f);
+            return;
+        }
+
+        // Predict + apply vertical offset
+        futureTargetPosition = PredictFuturePosition();
+        futureTargetPosition.y += yOffset;
+
+        Vector3 displacement = futureTargetPosition - spawnPoint.position;
+
+        float x = new Vector2(displacement.x, displacement.z).magnitude; // horizontal distance
+        float y = displacement.y;                                         // vertical distance
+        float t = Mathf.Max(0.0001f, GetTimeToImpact());
+        float g = Mathf.Abs(Physics.gravity.y);
+
+        float v0x = x / t;
+        float v0y = (y + 0.5f * g * t * t) / t;
+
+        Vector3 horizontalDir = new Vector3(displacement.x, 0f, displacement.z).normalized;
+        Vector3 velocity = horizontalDir * v0x + Vector3.up * v0y;
+
+        SetInitialVelocity(velocity);
+        PlaceMaxHeightMarker(spawnPoint.position, horizontalDir, v0x, v0y, g);
+    }
+
+    /// <summary>
+    /// Calculate initial velocity for a moving target with a fixed launch speed.
+    /// Brute-forces theta to fit vertical displacement within a tolerance.
+    /// </summary>
+    private void CalculateLaunchParametersByLaunchSpeed()
+    {
+        if (!target)
+        {
+            SetInitialVelocity(transform.forward * 20f);
+            return;
+        }
+
+        futureTargetPosition = PredictFuturePosition();
+        futureTargetPosition.y += yOffset; // keep consistent with time-to-impact path
+
+        Vector3 displacement = futureTargetPosition - spawnPoint.position;
+        float x = new Vector2(displacement.x, displacement.z).magnitude;
+        float y = displacement.y;
+
+        float g = Mathf.Abs(Physics.gravity.y);
+        float v0 = fixedLaunchSpeed ? fixedLaunchSpeed.Value : 20f;
+
+        // Quick range check using optimal 45° angle on flat terrain (approximate)
+        float maxRange = (v0 * v0 * Mathf.Sin(2f * 45f * Mathf.Deg2Rad)) / g;
+        if (x > maxRange)
+        {
+            Debug.LogWarning($"[PredictiveProjectileSpawner] Target is out of range (max ~{maxRange:F1}m, need {x:F1}m).");
+            return;
+        }
+
+        // Brute force theta in [0, 90] to match vertical displacement
+        const float tol = 0.5f;
+        bool found = false;
+        float thetaRad = 0f;
+        float v0x = 0f, v0y = 0f;
+
+        for (float deg = 0f; deg <= 90f; deg += 0.1f)
+        {
+            thetaRad = deg * Mathf.Deg2Rad;
+            v0x = v0 * Mathf.Cos(thetaRad);
+            v0y = v0 * Mathf.Sin(thetaRad);
+
+            if (Mathf.Abs(v0x) < 1e-3f) continue;
+
+            float t = x / v0x;
+            float yCalc = v0y * t - 0.5f * g * t * t;
+
+            if (Mathf.Abs(yCalc - y) <= tol)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            Debug.LogWarning("[PredictiveProjectileSpawner] No feasible launch angle found to hit the target.");
+            return;
+        }
+
+        Vector3 horizontalDir = new Vector3(displacement.x, 0f, displacement.z).normalized;
+        Vector3 velocity = horizontalDir * v0x + Vector3.up * v0y;
+
+        SetInitialVelocity(velocity);
+        PlaceMaxHeightMarker(spawnPoint.position, horizontalDir, v0x, v0y, g);
+    }
+
+    private void PlaceMaxHeightMarker(Vector3 start, Vector3 horizontalDir, float v0x, float v0y, float g)
+    {
+        if (!curveMaxHeightTransform) return;
+
+        float tMax = v0y / g;
+        float hMax = (v0y * v0y) / (2f * g);
+        float horizontalAtMax = v0x * tMax;
+
+        Vector3 pos = start + horizontalDir * horizontalAtMax;
+        pos.y = start.y + hMax;
+
+        curveMaxHeightTransform.position = pos;
+    }
+    #endregion
+
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    #region ===== Target Acquisition & Events =====
     private void HandleProjectileSwitched(Projectile projectile)
     {
         SetProjectile(projectile.gameObject);
 
         Weapon weapon = weaponSwitcher.GetWeapon(projectile);
-
-        if (weapon == null)
+        if (!weapon)
         {
-            Debug.LogWarning("Weapon is null. Cannot set spawn point.");
+            Debug.LogWarning("[PredictiveProjectileSpawner] Weapon is null. Cannot set spawn point.");
             return;
         }
 
@@ -58,254 +251,75 @@ public class PredictiveProjectileSpawner : ProjectileSpawner
         spawnPoint.localPosition = Vector3.zero;
     }
 
-    protected override void CalculateLaunchParameters()
+    private Transform GetTarget(ICollection<GameObject> targets)
     {
-        if (useFixedLaunchSpeed)
+        if (targets.IsNullOrEmpty())
         {
-            CalculateLaunchParametersByLaunchSpeed();
-        }
-        else
-        {
-            CalculateLaunchParametersByTimeToImpact();
-        }
-    }
-
-    ///// <summary>
-    ///// Calculates the launch direction and initial velocity based on the predicted future position of the target and the shooting angle.
-    ///// </summary>
-    private void CalculateLaunchParametersByTimeToImpact()
-    {
-        if (target == null || targetNavMeshAgent == null)
-        {
-            //Debug.LogWarning("Target or NavMeshAgent is not assigned. Cannot calculate launch parameters.");
-            SetInitialVelocity(Vector3.forward * 20f); // Default to a forward direction if no target is set
-            return;
+            Debug.LogWarning("[PredictiveProjectileSpawner] No targets available.");
+            return null;
         }
 
-        // Predict the future position of the target using its velocity and time to impact
-        futureTargetPosition = PredictFuturePosition();
-        futureTargetPosition.y += yOffset;
-
-        // Calculate the displacement to the future target position
-        Vector3 displacement = futureTargetPosition - spawnPoint.position;
-
-        // Separate horizontal and vertical components of the displacement
-        float x = new Vector2(displacement.x, displacement.z).magnitude; // Only x and z contribute to horizontal distance
-        float y = displacement.y;  // y is the vertical displacement
-
-        // Time to impact
-        float t = currentProjectile ? timeToImpact.Value + currentProjectile.SpawnDelay : timeToImpact.Value;
-
-        // Gravity constant (downward acceleration due to gravity)
-        float g = Mathf.Abs(Physics.gravity.y);  // Use absolute value since gravity is negative
-
-        // Horizontal velocity component (v0x)
-        float v0x = x / t;
-
-        // Vertical velocity component (v0y), derived from kinematic equation
-        // y = v0y * t - 0.5 * g * t^2 => v0y = (y + 0.5 * g * t^2) / t
-        float v0y = (y + 0.5f * g * t * t) / t;
-
-        // vy = tan (theta) * vx
-        //float theta = upwardAngle * Mathf.Deg2Rad;
-        //float v0y = Mathf.Tan(theta) * v0x;
-
-        // Calculate horizontal launch direction (normalized to keep direction intact)
-        Vector3 horizontalLaunchDirection = new Vector3(displacement.x, 0, displacement.z).normalized;
-
-        // Final velocity vector is a combination of horizontal and vertical components
-        Vector3 velocity = horizontalLaunchDirection * v0x + Vector3.up * v0y;
-
-        // Set the initial velocity based on the calculated velocity components
-        SetInitialVelocity(velocity);
-
-        // Calculate maximum height (h_max) based on v0y and gravity
-        float h_max = (v0y * v0y) / (2 * g);
-
-        // Time to reach maximum height
-        float t_max = v0y / g;
-
-        // Calculate the horizontal displacement at the time of maximum height
-        float horizontalDistanceAtMaxHeight = v0x * t_max;
-
-        // Calculate the 3D position of the projectile at maximum height
-        Vector3 maxHeightPosition = spawnPoint.position + horizontalLaunchDirection * horizontalDistanceAtMaxHeight;
-        maxHeightPosition.y = spawnPoint.position.y + h_max;
-
-        curveMaxHeightTransform.position = maxHeightPosition;
-    }
-
-    /// <summary>
-    /// Calculates the launch direction and initial velocity to hit a moving target
-    /// using a fixed launch speed, including a range check based on the optimal launch angle.
-    /// </summary>
-    private void CalculateLaunchParametersByLaunchSpeed()
-    {
-        // Predict the future position of the target using its velocity and time to impact
-        futureTargetPosition = PredictFuturePosition();
-
-        // Calculate the displacement to the future target position
-        Vector3 displacement = futureTargetPosition - spawnPoint.position;
-
-        // Separate horizontal and vertical components of the displacement
-        float x = new Vector2(displacement.x, displacement.z).magnitude; // Horizontal distance (x-z plane)
-        float y = displacement.y;  // Vertical displacement
-
-        // Gravity constant (downward acceleration due to gravity)
-        float g = Mathf.Abs(Physics.gravity.y);  // Use absolute value since gravity is negative
-
-        // Fixed launch speed
-        float v0 = fixedLaunchSpeed; // Set your fixed launch speed here
-
-        // Step 1: Calculate Maximum Range at Optimal Launch Angle (45 degrees)
-        // R_max = (v0^2 * sin(2 * 45)) / g
-        float maxRange = (v0 * v0 * Mathf.Sin(2 * 45 * Mathf.Deg2Rad)) / g;
-
-        // Step 2: Check if the target is within the range
-        if (x > maxRange)
+        if (targetProvider == null)
         {
-            Debug.LogWarning("Target is out of range. Maximum range is " + maxRange + " meters.");
-            return;
+            Debug.LogWarning("[PredictiveProjectileSpawner] No TargetProvider assigned. Using first target by default.");
+            targetProvider = new FirstTargetProvider(); // Fallback to first target if none provided
         }
 
-        // Step 3: Solve for the launch angle (theta)
-        bool foundSolution = false;
-        float optimalTheta = 0f;
-        float t = 0f;
-
-        for (float theta = 0; theta <= 90; theta += 0.1f)
-        {
-            float thetaRad = theta * Mathf.Deg2Rad;
-
-            // Calculate horizontal and vertical components of velocity
-            float v0x = v0 * Mathf.Cos(thetaRad);
-            float v0y = v0 * Mathf.Sin(thetaRad);
-
-            // Calculate time to impact using horizontal displacement and velocity
-            if (Mathf.Abs(v0x) > 0.01f) // Avoid division by zero
-            {
-                t = x / v0x;
-
-                // Check if the vertical position matches the target's vertical displacement at this time
-                float calculatedY = (v0y * t) - (0.5f * g * t * t);
-
-                // Allow for a small tolerance due to numerical precision issues
-                if (Mathf.Abs(calculatedY - y) < 0.5f)
-                {
-                    optimalTheta = thetaRad;
-                    foundSolution = true;
-                    break;
-                }
-            }
-        }
-
-        // If no solution is found, handle accordingly (e.g., set default values or log an error)
-        if (!foundSolution)
-        {
-            Debug.LogWarning("No feasible launch angle found to hit the target.");
-            return;
-        }
-
-        // Step 4: Calculate the launch parameters based on the found angle
-        // Calculate horizontal launch direction (normalized to keep direction intact)
-        Vector3 horizontalLaunchDirection = new Vector3(displacement.x, 0, displacement.z).normalized;
-
-        // Calculate initial velocity components based on the found launch angle
-        float finalV0x = v0 * Mathf.Cos(optimalTheta);
-        float finalV0y = v0 * Mathf.Sin(optimalTheta);
-
-        // Final velocity vector is a combination of horizontal and vertical components
-        Vector3 velocity = horizontalLaunchDirection * finalV0x + Vector3.up * finalV0y;
-
-        // Set the initial velocity based on the calculated velocity components
-        SetInitialVelocity(velocity);
-
-        // Step 5: Calculate maximum height (h_max) based on v0y and gravity
-        float h_max = (finalV0y * finalV0y) / (2 * g);
-
-        // Time to reach maximum height
-        float t_max = finalV0y / g;
-
-        // Calculate the horizontal displacement at the time of maximum height
-        float horizontalDistanceAtMaxHeight = finalV0x * t_max;
-
-        // Calculate the 3D position of the projectile at maximum height
-        Vector3 maxHeightPosition = spawnPoint.position + horizontalLaunchDirection * horizontalDistanceAtMaxHeight;
-        maxHeightPosition.y = spawnPoint.position.y + h_max;
-
-        // Set the position of the max height indicator (for visualization purposes)
-        curveMaxHeightTransform.position = maxHeightPosition;
-    }
-
-
-    /// <summary>
-    /// Predicts the future position of the target based on its current velocity and time to impact.
-    /// </summary>
-    private Vector3 PredictFuturePosition()
-    {
-        if (target == null || targetNavMeshAgent == null)
-        {
-            Debug.LogWarning("Target or NavMeshAgent is not assigned. Cannot predict future position.");
-            return Vector3.zero;
-        }
-
-        // Predicted future position = current position + velocity * time to impact
-        return target.position + targetNavMeshAgent.velocity * timeToImpact.Value;
-    }
-
-    private readonly float pollInterval = 0.5f; // Interval to check for target
-    private float nextPollTime = 0f;
-
-    protected override void Update()
-    {
-        base.Update();
-
-        if (target == null && Time.time >= nextPollTime)
-        {
-            Debug.LogWarning("Target is null. Polling to find target.");
-            FindTarget();
-            nextPollTime = Time.time + pollInterval;
-        }
+        return targetProvider.GetTarget(targets);
     }
 
     private void FindTarget()
     {
-        if (target != null) return;
+        if (target) return;
 
-        GameObject[] targets = GameObject.FindGameObjectsWithTag("Enemy");
-
-        GameObject targetObject = null;
-
-        if (targets.Length > 0)
+        GameObject[] candidates = GameObject.FindGameObjectsWithTag("Enemy");
+        if (candidates.IsNullOrEmpty())
         {
-            // For simplicity, return the first target found
-            targetObject = targets[0];
-        }
-
-        if (targetObject == null)
-        {
-            Debug.LogWarning("Please assign a target in the inspector or ensure there is an object with the 'Enemy' tag.");
+            Debug.LogWarning("[PredictiveProjectileSpawner] No target found. Assign in inspector or add an 'Enemy'-tagged object.");
             return;
         }
-        else
-        {            
-            if (targetObject.TryGetComponent<Health>(out var targetHealth))
-            {
-                targetHealth.OnDeath -= HandleTargetDeath; // Unsubscribe to avoid multiple subscriptions
-                targetHealth.OnDeath += HandleTargetDeath;
-            }
 
-            target = targetObject.transform;
-            targetNavMeshAgent = targetObject.GetComponent<NavMeshAgent>();
+        target = GetTarget(candidates);
+
+        if (target.TryGetComponent<Health>(out var health))
+        {
+            health.OnDeath -= HandleTargetDeath; // de-dupe
+            health.OnDeath += HandleTargetDeath;
         }
+
+        if (target.TryGetComponent<RunningVisual>(out var runningVisual))
+        {
+            runningVisual.ShowTargetIndicator(true);
+        }
+
+        targetNavMeshAgent = target.GetComponent<NavMeshAgent>();
+        cameraController?.AddPointToTrack(target);
     }
 
     private void HandleTargetDeath()
     {
+        if (target)
+        {
+            cameraController?.RemovePointToTrack(target);
+            if (target.TryGetComponent<RunningVisual>(out var runningVisual))
+            {
+                runningVisual.ShowTargetIndicator(false);
+            }
+        }
+
         target = null;
         targetNavMeshAgent = null;
 
-        Debug.Log("Target has died. Finding new target.");
+        Debug.Log("[PredictiveProjectileSpawner] Target died. Searching for a new one...");
         FindTarget();
+    }
+    #endregion
+}
+
+public static class ICollectionExtensions
+{
+    public static bool IsNullOrEmpty<T>(this ICollection<T> collection)
+    {
+        return collection == null || collection.Count == 0;
     }
 }

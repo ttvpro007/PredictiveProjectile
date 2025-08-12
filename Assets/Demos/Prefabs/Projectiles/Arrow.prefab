@@ -215,10 +215,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gameplayObjectData: {fileID: 11400000, guid: 5b1d9afe4f3617f4ebfa8d5bc44316f1, type: 2}
-  cooldown: 2
+  cooldown: 1.5
   onHitDamage: 15
   modifierPercentage: {x: -0.3, y: 0.3}
   hitPointPrefab: {fileID: 4107697869088053130, guid: 0d7e8fc040bcc8942911bc14a194a75c, type: 3}
-  onHitEffect: {fileID: 5339739117810204693, guid: 64d3c530621402c4286b356b016174a8, type: 3}
+  onHitEffect: {fileID: 5339739117810204693, guid: dfb47358648a5834c90c7969901977bb, type: 3}
   critChance: 0.7
+  stunChance: 0.8
+  stunDuration: 0.25
   destroyDelay: 3

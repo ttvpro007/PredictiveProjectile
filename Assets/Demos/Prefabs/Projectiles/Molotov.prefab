@@ -176,12 +176,14 @@ MonoBehaviour:
   onHitDamage: 5
   modifierPercentage: {x: -0.3, y: 0.3}
   hitPointPrefab: {fileID: 4107697869088053130, guid: 0d7e8fc040bcc8942911bc14a194a75c, type: 3}
-  onHitEffect: {fileID: 5339739117810204693, guid: 64d3c530621402c4286b356b016174a8, type: 3}
+  onHitEffect: {fileID: 5339739117810204693, guid: dfb47358648a5834c90c7969901977bb, type: 3}
   critChance: 0.3
-  explosionEffect: {fileID: 6649054028638981966, guid: 17749527f24a38e4a8518725a42d1df3, type: 3}
+  stunChance: 0
+  stunDuration: 0
+  explosionEffect: {fileID: 6649054028638981966, guid: 3fc727b72e720f94e92a56525d3d021b, type: 3}
   explosionDamage: 10
   explosionRadius: 5
-  trailEffect: {fileID: 7535860815393195148, guid: ee274b3ea9430394f934d67ebbd72453, type: 3}
+  trailEffect: {fileID: 7535860815393195148, guid: b99bebcb54572614aa0947ff57ddc49b, type: 3}
   burnEffectPrefab: {fileID: 1385118171058165612, guid: ba0a2e7f29967d048b5f22555f7e7ea8, type: 3}
   burnDamage: 3
   burnDuration: 5

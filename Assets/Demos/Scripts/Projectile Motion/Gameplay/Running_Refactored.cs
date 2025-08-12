@@ -3,10 +3,9 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
-using VT.Generic;
 
 [RequireComponent(typeof(NavMeshAgent))]
-public class Running : MonoBehaviour
+public class Running_Refactored : MonoBehaviour
 {
     #region ===== Config: Running =====
     [Header("Running Settings")]
@@ -18,8 +17,6 @@ public class Running : MonoBehaviour
 
     [Tooltip("Arrival tolerance (meters).")]
     [SerializeField] private float destinationTolerance = 2f;
-
-    [SerializeField] private Boundary2D runBoundary;
     #endregion
 
     #region ===== Config: Grounding =====
@@ -38,12 +35,14 @@ public class Running : MonoBehaviour
     [Header("Injection")]
     [SerializeReference] private IGroundChecker groundChecker = new SphereRayGroundChecker();
     [SerializeReference] private IGroundDebugDrawer groundDebugDrawer = new GizmosGroundDebugDrawer();
+
+    [Tooltip("Source of destinations (enemy brain/AI).")]
+    [SerializeReference] private IDestinationProvider destinationProvider;
     #endregion
 
     #region ===== Components (cached) =====
     private Rigidbody rb;
     private NavMeshAgent agent;
-    private Transform mapCenter; // GameObject tagged "MapCenter"
     private Collider col;
     #endregion
 
@@ -69,7 +68,7 @@ public class Running : MonoBehaviour
     // Bridge external listeners to the FloatVariable's change event.
     public event Action<float> OnSpeedChanged
     {
-        add { speed.OnValueChanged += value;  }
+        add { speed.OnValueChanged += value; }
         remove { speed.OnValueChanged -= value; }
     }
 
@@ -91,19 +90,10 @@ public class Running : MonoBehaviour
             enabled = false;
             return;
         }
-
-        mapCenter = GameObject.FindGameObjectWithTag("MapCenter")?.transform;
     }
 
     private void OnEnable()
     {
-        if (mapCenter == null)
-        {
-            Debug.LogError("[Running] Map Center not found. Add a GameObject tagged 'MapCenter'.");
-            enabled = false;
-            return;
-        }
-
         RegisterEvents();
 
         // Initial ground probe & counters
@@ -120,7 +110,7 @@ public class Running : MonoBehaviour
         OnGroundedChanged?.Invoke(wasGrounded);
 
         if (run)
-            SetDestination();
+            RequestAndSetDestination();
     }
 
     private void OnDisable()
@@ -130,8 +120,7 @@ public class Running : MonoBehaviour
 
         if (agent)
         {
-            if (lastGround.grounded)
-                agent.ResetPath();
+            agent.ResetPath();
             agent.enabled = false;
         }
 
@@ -152,7 +141,7 @@ public class Running : MonoBehaviour
             agent.remainingDistance <= destinationTolerance &&
             (!agent.hasPath || agent.velocity.sqrMagnitude < 0.001f))
         {
-            SetDestination();
+            RequestAndSetDestination();
         }
     }
 
@@ -180,7 +169,7 @@ public class Running : MonoBehaviour
                 agent.enabled = true;
 
                 if (run && (!agent.hasPath || agent.remainingDistance <= destinationTolerance))
-                    SetDestination();
+                    RequestAndSetDestination();
             }
         }
         else
@@ -214,6 +203,11 @@ public class Running : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────────────
 
     #region ===== Public API =====
+    public void InjectDestinationProvider(IDestinationProvider provider)
+    {
+        destinationProvider = provider;
+    }
+
     public void AddExplosionForce(float force, Vector3 origin, float radius)
     {
         if (!rb) return;
@@ -244,40 +238,6 @@ public class Running : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────────────
 
     #region ===== Helpers =====
-    private Vector3 GetDestination()
-    {
-        float randomX = UnityEngine.Random.Range(runBoundary.Min.x, runBoundary.Max.x);
-        float randomZ = UnityEngine.Random.Range(runBoundary.Min.y, runBoundary.Max.y);
-
-        return new Vector3(randomX, 0f, randomZ);
-    }
-
-    private void SetDestination()
-    {
-        if (!agent.enabled) return;
-
-        // Try a handful of random points; snap to NavMesh
-        for (int i = 0; i < 8; i++)
-        {
-            //Vector2 rand = UnityEngine.Random.insideUnitCircle * radius;
-            //Vector3 candidate = mapCenter.position + new Vector3(rand.x, 0f, rand.y);
-
-            Vector3 candidate = mapCenter.position + GetDestination();
-
-            if (NavMesh.SamplePosition(candidate, out var hit, 2f, NavMesh.AllAreas))
-            {
-                CurrentDestination = hit.position;
-                agent.SetDestination(CurrentDestination);
-                OnDestinationChanged?.Invoke(CurrentDestination);
-                return;
-            }
-        }
-
-        // Fallback: hold position
-        CurrentDestination = transform.position;
-        agent.ResetPath();
-    }
-
     private void RegisterEvents()
     {
         if (speed != null)
@@ -299,6 +259,34 @@ public class Running : MonoBehaviour
     {
         if (agent)
             agent.speed = newSpeed;
+    }
+
+    private void RequestAndSetDestination()
+    {
+        if (!agent.enabled) return;
+
+        if (destinationProvider == null) return;
+
+        if (!destinationProvider.TryGetNext(out var candidate))
+        {
+            // Fallback: hold position
+            CurrentDestination = transform.position;
+            agent.ResetPath();
+            return;
+        }
+
+        // Snap to NavMesh
+        if (NavMesh.SamplePosition(candidate, out var hit, 2f, NavMesh.AllAreas))
+        {
+            CurrentDestination = hit.position;
+            agent.SetDestination(CurrentDestination);
+            OnDestinationChanged?.Invoke(CurrentDestination);
+        }
+        else
+        {
+            CurrentDestination = transform.position;
+            agent.ResetPath();
+        }
     }
     #endregion
 
@@ -326,7 +314,7 @@ public class Running : MonoBehaviour
         agent.Warp(transform.position);
         agent.enabled = true;
 
-        if (run) SetDestination();
+        if (run) RequestAndSetDestination();
     }
 
     private IEnumerator StunCoroutine(float duration)

@@ -39,6 +39,15 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
     [Range(0f, 1f)]
     [SerializeField] protected float critChance;
 
+    [Tooltip("Stun chance represented as a value between 0 and 1.")]
+    [DisplayField("Stun Chance", "Icons/electric_shock")]
+    [Range(0f, 1f)]
+    [SerializeField] protected float stunChance;
+
+    [Tooltip("Stun duration.")]
+    [DisplayField("Stun Duration", "Icons/clock_2")]
+    [SerializeField] protected float stunDuration;
+
     // Protected Fields
     protected Rigidbody rBody;
     protected Collider col;
@@ -170,6 +179,15 @@ public abstract class Projectile : MonoBehaviour, IDisplayable
         else
         {
             health.TakeDamage((int)GetCalculatedDamage(damage));
+        }
+
+        if (Random.Range(0f, 1f) <= stunChance)
+        {
+            // If a stun occurs, apply stun effect
+            if (health.TryGetComponent<Running>(out var runner))
+            {
+                runner.ApplyStun(stunDuration);
+            }
         }
     }
 

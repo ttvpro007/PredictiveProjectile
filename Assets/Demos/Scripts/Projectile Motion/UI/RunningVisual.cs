@@ -21,6 +21,53 @@ public class RunningVisual : MonoBehaviour
 
     private void OnEnable()
     {
+        RegisterEvents();
+        SetupVisuals();
+
+        if (targetIndicator != null)
+            SetTargetIndicator(runner.CurrentDestination);
+
+        ShowTargetIndicator(false); // Hide target indicator by default
+    }
+
+    private void OnDisable()
+    {
+        UnregisterEvent();
+        CleanupVisuals();
+    }
+
+    private void Update()
+    {
+        // Rotate direction indicator to match current movement
+        if (directionIndicator != null)
+        {
+            Vector3 vel = runner.CurrentVelocity;
+            if (vel.sqrMagnitude > 0.01f)
+                directionIndicator.forward = vel.normalized;
+        }
+    }
+
+    private void RegisterEvents()
+    {
+        if (runner != null)
+        {
+            // Subscribe to destination-changed to update target marker
+            runner.OnDestinationChanged -= SetTargetIndicator;
+            runner.OnDestinationChanged += SetTargetIndicator;
+        }
+    }
+
+    private void UnregisterEvent()
+    {
+        if (runner != null)
+        {
+            // Unsubscribe from destination-changed
+            runner.OnDestinationChanged -= SetTargetIndicator;
+        }
+    }
+
+    private void SetupVisuals()
+    {
         // Create direction indicator
         if (directionIndicatorPrefab != null)
         {
@@ -36,41 +83,25 @@ public class RunningVisual : MonoBehaviour
             GameObject tgtGO = Instantiate(targetIndicatorPrefab);
             targetIndicator = tgtGO.transform;
         }
-
-        // Subscribe to destination-changed to update target marker
-        runner.OnDestinationChanged += SetTargetIndicator;
-
-        // Initialize target marker position immediately
-        if (targetIndicator != null)
-            SetTargetIndicator(runner.CurrentDestination);
     }
-    
-    private void OnDisable()
+
+    private void CleanupVisuals()
     {
-        // Unsubscribe from destination-changed
-        if (runner != null)
-            runner.OnDestinationChanged -= SetTargetIndicator;
-        // Destroy indicators
         if (directionIndicator != null)
             Destroy(directionIndicator.gameObject);
         if (targetIndicator != null)
             Destroy(targetIndicator.gameObject);
     }
 
-    private void Update()
-    {
-        // Rotate direction indicator to match current movement
-        if (directionIndicator != null)
-        {
-            Vector3 vel = runner.CurrentVelocity;
-            if (vel.sqrMagnitude > 0.01f)
-                directionIndicator.forward = vel.normalized;
-        }
-    }
-
     private void SetTargetIndicator(Vector3 newPos)
     {
         if (targetIndicator != null)
             targetIndicator.position = newPos;
+    }
+
+    public void ShowTargetIndicator(bool show)
+    {
+        if (targetIndicator != null)
+            targetIndicator.gameObject.SetActive(show);
     }
 }

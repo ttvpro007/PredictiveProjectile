@@ -6956,7 +6956,17 @@ MonoBehaviour:
   fixedLaunchSpeed: {fileID: 11400000, guid: 829155ed05395af42aa38e1a4d2473d5, type: 2}
   useFixedLaunchSpeed: 0
   yOffset: 1
+  targetProvider:
+    rid: 5425775641978470752
   weaponSwitcher: {fileID: 3763716685594240865}
+  pollInterval: 0.5
+  references:
+    version: 2
+    RefIds:
+    - rid: 5425775641978470752
+      type: {class: NearestTargetProvider, ns: , asm: Assembly-CSharp}
+      data:
+        referencePoint: {fileID: 5643746425418601785}
 --- !u!120 &883073356062316732
 LineRenderer:
   serializedVersion: 2

@@ -147,7 +147,9 @@ public class ProjectileSpawner : MonoBehaviour
     {
         if (!CanSpawn) return;
 
-        cachedProjectile = CreateProjectile();
+        // Instantiate the projectile at the spawn point's position and rotation
+        GameObject spawnedProjectile = Instantiate(projectilePrefab, spawnPoint.position, spawnPoint.rotation);
+        cachedProjectile = spawnedProjectile.GetComponent<Projectile>();
 
         if (cachedProjectile == null) return;
 
@@ -178,8 +180,6 @@ public class ProjectileSpawner : MonoBehaviour
 
         if (projectilePrefab == null || spawnPoint == null) return;
 
-        //Projectile projectile = CreateProjectile();
-
         if (!cachedProjectile)
         {
             Debug.LogWarning("No projectile to spawn. Please call RequestSpawn first.");
@@ -187,6 +187,8 @@ public class ProjectileSpawner : MonoBehaviour
         }
 
         cachedProjectile.gameObject.SetActive(true); // Activate the projectile game object
+        cachedProjectile.SetHitPointPosition(trajectoryDrawer.HitPointPosition);
+
         // Get the Rigidbody component of the spawned projectile
         if (cachedProjectile.TryGetComponent<Rigidbody>(out var rb))
         {
@@ -198,16 +200,5 @@ public class ProjectileSpawner : MonoBehaviour
         OnProjectileShot?.Invoke(cachedProjectile);
 
         cachedProjectile = null; // Clear the cached projectile after shooting
-    }
-
-    private Projectile CreateProjectile()
-    {
-        // Instantiate the projectile at the spawn point's position and rotation
-        GameObject spawnedProjectile = Instantiate(projectilePrefab, spawnPoint.position, spawnPoint.rotation);
-
-        Projectile projectile = spawnedProjectile.GetComponent<Projectile>();
-        projectile.SetHitPointPosition(trajectoryDrawer.HitPointPosition);
-
-        return projectile;
     }
 }
